@@ -105,17 +105,18 @@ type RoomCreatedPayload struct {
 
 // GameStatePayload contains the full game state
 type GameStatePayload struct {
-	Phase          string       `json:"phase"` // waiting, placement, matching, add_token, finished
-	CurrentTurn    int          `json:"currentTurn"`
-	PlacementRound int          `json:"placementRound"`
-	MaxRound       int          `json:"maxRound"`
-	TimeLeft       int          `json:"timeLeft"`
-	Players        []PlayerInfo `json:"players"`
-	Plates         []PlateInfo  `json:"plates"`
-	SelectedPlates []int        `json:"selectedPlates"`
-	MatchedPlates  []int        `json:"matchedPlates,omitempty"`
-	Message        string       `json:"message,omitempty"`
-	MessageType    string       `json:"messageType,omitempty"` // success, fail, info
+	Phase                  string       `json:"phase"` // waiting, placement, matching, add_token, finished
+	CurrentTurn            int          `json:"currentTurn"`
+	PlacementRound         int          `json:"placementRound"`
+	MaxRound               int          `json:"maxRound"`
+	TimeLeft               int          `json:"timeLeft"`
+	Players                []PlayerInfo `json:"players"`
+	Plates                 []PlateInfo  `json:"plates"`
+	SelectedPlates         []int        `json:"selectedPlates"`
+	OpponentSelectedPlates []int        `json:"opponentSelectedPlates,omitempty"` // Opponent's selections visible to this player
+	MatchedPlates          []int        `json:"matchedPlates,omitempty"`
+	Message                string       `json:"message,omitempty"`
+	MessageType            string       `json:"messageType,omitempty"` // success, fail, info
 }
 
 // PlayerInfo for game state

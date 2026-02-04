@@ -203,6 +203,18 @@
                 box-shadow: 0 0 20px rgba(231, 76, 60, 0.6);
             }
 
+            /* Opponent selection styling - purple/violet theme */
+            .plate.opponent-selected .plate-cover,
+            .plate.opponent-selected-first .plate-cover {
+                border-color: #9b59b6;
+                box-shadow: 0 0 20px rgba(155, 89, 182, 0.6);
+            }
+
+            .plate.opponent-selected-second .plate-cover {
+                border-color: #8e44ad;
+                box-shadow: 0 0 20px rgba(142, 68, 173, 0.6);
+            }
+
             .plate.token-added .plate-cover {
                 border-color: #2ecc71;
                 box-shadow: 0 0 25px rgba(46, 204, 113, 0.8);
@@ -1063,12 +1075,21 @@
                             plateEl.classList.add('disabled');
                         }
 
-                        // Selection styling
-                        if (state.selectedPlates.includes(index)) {
+                        // Selection styling (my selections)
+                        if (state.selectedPlates && state.selectedPlates.includes(index)) {
                             if (state.selectedPlates[0] === index) {
                                 plateEl.classList.add('selected-first');
                             } else {
                                 plateEl.classList.add('selected-second');
+                            }
+                        }
+
+                        // Opponent selection styling
+                        if (state.opponentSelectedPlates && state.opponentSelectedPlates.includes(index)) {
+                            if (state.opponentSelectedPlates[0] === index) {
+                                plateEl.classList.add('opponent-selected-first');
+                            } else {
+                                plateEl.classList.add('opponent-selected-second');
                             }
                         }
 

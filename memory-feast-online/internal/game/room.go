@@ -360,8 +360,14 @@ func (r *Room) stopTimerLocked() {
 	}
 }
 
-// GetGameState returns a snapshot of the game state
+// GetGameState returns a snapshot of the game state (generic, no player-specific data)
 func (r *Room) GetGameState() ws.GameStatePayload {
+	return r.GetGameStateForPlayer(-1) // -1 means generic state
+}
+
+// GetGameStateForPlayer returns game state with player-specific selection visibility
+// playerIndex: 0 or 1 for specific player, -1 for generic state
+func (r *Room) GetGameStateForPlayer(playerIndex int) ws.GameStatePayload {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -385,7 +391,7 @@ func (r *Room) GetGameState() ws.GameStatePayload {
 		}
 	}
 
-	return ws.GameStatePayload{
+	state := ws.GameStatePayload{
 		Phase:          string(r.State.Phase),
 		CurrentTurn:    r.State.CurrentTurn,
 		PlacementRound: r.State.PlacementRound,
@@ -393,37 +399,73 @@ func (r *Room) GetGameState() ws.GameStatePayload {
 		TimeLeft:       r.State.TimeLeft,
 		Players:        players,
 		Plates:         plates,
-		SelectedPlates: r.State.SelectedPlates,
+		SelectedPlates: []int{},
 		MatchedPlates:  r.State.MatchedPlates,
 	}
+
+	// During matching phase, show selections appropriately
+	if r.State.Phase == PhaseMatching && playerIndex >= 0 {
+		if playerIndex == r.State.CurrentTurn {
+			// Current turn player sees their own selections as "selected"
+			state.SelectedPlates = r.State.SelectedPlates
+		} else {
+			// Opponent sees current turn player's selections as "opponent selected"
+			state.OpponentSelectedPlates = r.State.SelectedPlates
+		}
+	} else {
+		// Default: include selected plates as-is
+		state.SelectedPlates = r.State.SelectedPlates
+	}
+
+	return state
 }
 
 // BroadcastState sends game state to all connected players
+// Each player receives state with appropriate selection visibility
 func (r *Room) BroadcastState() {
-	state := r.GetGameState()
-	msg, err := ws.NewMessage(ws.MsgGameState, state)
-	if err != nil {
-		log.Printf("Error creating game state message: %v", err)
-		return
-	}
-
-	msgBytes, err := json.Marshal(msg)
-	if err != nil {
-		log.Printf("Error marshaling game state: %v", err)
-		return
-	}
-
+	// Collect session IDs first while holding lock
 	r.mu.RLock()
-	defer r.mu.RUnlock()
+	sessionIDs := make([]string, 2)
+	playerIDs := make([]string, 2)
+	for i, p := range r.Players {
+		if p != nil {
+			sessionIDs[i] = p.SessionID
+			playerIDs[i] = p.ID
+		}
+	}
+	hub := r.Hub
+	r.mu.RUnlock()
 
-	for _, p := range r.Players {
-		if p != nil && r.Hub != nil {
-			client := r.Hub.GetClient(p.SessionID)
-			if client != nil {
-				if err := client.WriteMessageDirect(websocket.TextMessage, msgBytes); err != nil {
-					log.Printf("Error sending game state to player %s: %v", p.ID, err)
-				}
-			}
+	if hub == nil {
+		return
+	}
+
+	// Send to each player with their specific state
+	for i := 0; i < 2; i++ {
+		if sessionIDs[i] == "" {
+			continue
+		}
+
+		client := hub.GetClient(sessionIDs[i])
+		if client == nil {
+			continue
+		}
+
+		state := r.GetGameStateForPlayer(i)
+		msg, err := ws.NewMessage(ws.MsgGameState, state)
+		if err != nil {
+			log.Printf("Error creating game state message: %v", err)
+			continue
+		}
+
+		msgBytes, err := json.Marshal(msg)
+		if err != nil {
+			log.Printf("Error marshaling game state: %v", err)
+			continue
+		}
+
+		if err := client.WriteMessageDirect(websocket.TextMessage, msgBytes); err != nil {
+			log.Printf("Error sending game state to player %s: %v", playerIDs[i], err)
 		}
 	}
 }
