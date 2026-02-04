@@ -50,7 +50,7 @@ func NewRoom(plateCount int) *Room {
 	}
 
 	return &Room{
-		ID:         generateID(),
+		ID:         GenerateID(),
 		Code:       generateRoomCode(),
 		PlateCount: plateCount,
 		State:      NewGameState(plateCount),
@@ -457,8 +457,8 @@ func (r *Room) SendToPlayer(playerIndex int, msg *ws.Message) error {
 	player := r.Players[playerIndex]
 	r.mu.RUnlock()
 
-	if player == nil || !player.IsConnected() {
-		return nil // Silently ignore if player not connected
+	if player == nil || r.Hub == nil {
+		return nil
 	}
 
 	msgBytes, err := json.Marshal(msg)
@@ -466,9 +466,9 @@ func (r *Room) SendToPlayer(playerIndex int, msg *ws.Message) error {
 		return err
 	}
 
-	conn := player.GetConnection()
-	if conn != nil {
-		return conn.WriteMessage(websocket.TextMessage, msgBytes)
+	client := r.Hub.GetClient(player.SessionID)
+	if client != nil {
+		return client.WriteMessageDirect(websocket.TextMessage, msgBytes)
 	}
 	return nil
 }
@@ -487,7 +487,8 @@ const (
 
 // Helper functions
 
-func generateID() string {
+// GenerateID creates a random 32-char hex ID
+func GenerateID() string {
 	bytes := make([]byte, 16)
 	rand.Read(bytes)
 	return hex.EncodeToString(bytes)

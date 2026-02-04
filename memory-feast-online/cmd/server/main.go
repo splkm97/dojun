@@ -627,7 +627,7 @@ func (s *Server) sendError(client *ws.Client, code, message string) {
 }
 
 func generateSessionID() string {
-	return game.NewRoom(4).ID // Reuse ID generation
+	return game.GenerateID()
 }
 
 func main() {
