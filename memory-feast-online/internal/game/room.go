@@ -413,7 +413,8 @@ func (r *Room) GetGameStateForPlayer(playerIndex int) ws.GameStatePayload {
 			state.OpponentSelectedPlates = r.State.SelectedPlates
 		}
 	} else {
-		// Default: include selected plates as-is
+		// Default: include selected plates as-is (used during non-matching phases
+		// like placement/add_token where selection visibility doesn't matter)
 		state.SelectedPlates = r.State.SelectedPlates
 	}
 
