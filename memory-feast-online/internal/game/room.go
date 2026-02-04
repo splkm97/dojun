@@ -25,6 +25,7 @@ type Room struct {
 	Players    [2]*Player
 	State      *GameState
 	PlateCount int
+	Hub        *ws.Hub // Hub for sending messages
 
 	mu          sync.RWMutex
 	timer       *time.Timer
@@ -416,10 +417,10 @@ func (r *Room) BroadcastState() {
 	defer r.mu.RUnlock()
 
 	for _, p := range r.Players {
-		if p != nil && p.IsConnected() {
-			conn := p.GetConnection()
-			if conn != nil {
-				if err := conn.WriteMessage(websocket.TextMessage, msgBytes); err != nil {
+		if p != nil && r.Hub != nil {
+			client := r.Hub.GetClient(p.SessionID)
+			if client != nil {
+				if err := client.WriteMessageDirect(websocket.TextMessage, msgBytes); err != nil {
 					log.Printf("Error sending game state to player %s: %v", p.ID, err)
 				}
 			}
@@ -439,10 +440,10 @@ func (r *Room) BroadcastMessage(msg *ws.Message) {
 	defer r.mu.RUnlock()
 
 	for _, p := range r.Players {
-		if p != nil && p.IsConnected() {
-			conn := p.GetConnection()
-			if conn != nil {
-				if err := conn.WriteMessage(websocket.TextMessage, msgBytes); err != nil {
+		if p != nil && r.Hub != nil {
+			client := r.Hub.GetClient(p.SessionID)
+			if client != nil {
+				if err := client.WriteMessageDirect(websocket.TextMessage, msgBytes); err != nil {
 					log.Printf("Error sending message to player %s: %v", p.ID, err)
 				}
 			}

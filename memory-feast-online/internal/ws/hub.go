@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -93,6 +94,7 @@ type Client struct {
 	Send      chan []byte
 
 	closeMu sync.Mutex
+	writeMu sync.Mutex // Mutex for serializing writes
 	closed  bool
 }
 
@@ -126,18 +128,39 @@ func (c *Client) IsClosed() bool {
 	return c.closed
 }
 
-// WritePump pumps messages from the hub to the websocket connection
+// WritePump pumps messages from the Send channel to the websocket connection
+// All writes are serialized via writeMu
 func (c *Client) WritePump() {
 	defer func() {
 		c.Conn.Close()
 	}()
 
 	for message := range c.Send {
-		if err := c.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
+		c.writeMu.Lock()
+		c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+		err := c.Conn.WriteMessage(websocket.TextMessage, message)
+		c.writeMu.Unlock()
+		if err != nil {
 			log.Printf("Error writing to client %s: %v", c.SessionID, err)
 			return
 		}
 	}
+}
+
+// WriteMessageDirect writes a message directly with mutex protection
+// Used by game room broadcasts to avoid channel overhead
+func (c *Client) WriteMessageDirect(messageType int, data []byte) error {
+	c.closeMu.Lock()
+	if c.closed {
+		c.closeMu.Unlock()
+		return nil
+	}
+	c.closeMu.Unlock()
+
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+	c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+	return c.Conn.WriteMessage(messageType, data)
 }
 
 // SendMessage sends a message to this client

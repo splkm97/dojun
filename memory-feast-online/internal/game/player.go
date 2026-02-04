@@ -15,6 +15,7 @@ type Player struct {
 	Tokens         int
 	Conn           *websocket.Conn
 	ConnMu         sync.Mutex
+	WriteMu        sync.Mutex // Mutex for serializing writes to connection
 	DisconnectedAt *time.Time
 }
 
@@ -68,4 +69,19 @@ func (p *Player) DisconnectedDuration() time.Duration {
 		return 0
 	}
 	return time.Since(*p.DisconnectedAt)
+}
+
+// WriteMessage sends a message to the player's connection (thread-safe)
+func (p *Player) WriteMessage(messageType int, data []byte) error {
+	p.ConnMu.Lock()
+	conn := p.Conn
+	p.ConnMu.Unlock()
+
+	if conn == nil {
+		return nil
+	}
+
+	p.WriteMu.Lock()
+	defer p.WriteMu.Unlock()
+	return conn.WriteMessage(messageType, data)
 }

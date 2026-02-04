@@ -56,6 +56,7 @@ func NewServer(st store.Store) *Server {
 		}
 
 		room := game.NewRoom(plateCount)
+		room.Hub = s.hub
 		room.SetOnEmpty(func(roomID string) {
 			s.removeRoom(roomID)
 		})
@@ -127,10 +128,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	client := ws.NewClient(s.hub, conn, sessionID)
 	s.hub.Register(client)
 
-	// Start ping/pong
-	go client.StartPingPong()
-
-	// Start write pump
+	// Start write pump (includes ping/pong)
 	go client.WritePump()
 
 	// Read messages
@@ -228,6 +226,7 @@ func (s *Server) handleCreateRoom(client *ws.Client, msg *ws.Message) {
 	}
 
 	room := game.NewRoom(plateCount)
+	room.Hub = s.hub
 	room.SetOnEmpty(func(roomID string) {
 		s.removeRoom(roomID)
 	})
