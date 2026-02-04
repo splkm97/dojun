@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: memory-feast
+  annotations:
+    # WebSocket support - increase timeouts for long-lived connections
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    # WebSocket upgrade support
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+    # Enable WebSocket
+    nginx.ingress.kubernetes.io/websocket-services: "memory-feast"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: memory-feast.example.com  # Change to your domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: memory-feast
+            port:
+              number: 80
+  # Uncomment and configure for TLS
+  # tls:
+  # - hosts:
+  #   - memory-feast.example.com
+  #   secretName: memory-feast-tls

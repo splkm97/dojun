@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-feast
+  labels:
+    app: memory-feast
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-feast
+  template:
+    metadata:
+      labels:
+        app: memory-feast
+    spec:
+      containers:
+      - name: game
+        image: memory-feast:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PORT
+          value: "8080"
+        - name: REDIS_ADDR
+          value: "redis:6379"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 5
