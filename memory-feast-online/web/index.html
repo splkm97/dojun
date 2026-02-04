@@ -808,6 +808,12 @@
                     this.ws.onopen = () => {
                         console.log('WebSocket connected');
                         this.updateConnectionStatus('connected');
+
+                        // Attempt to reconnect to any active game
+                        this.send({
+                            type: 'reconnect',
+                            payload: { sessionId: this.sessionId }
+                        });
                     };
 
                     this.ws.onclose = () => {
@@ -956,7 +962,10 @@
                 }
 
                 handleReconnected(payload) {
+                    // Restore player index from server
+                    this.playerIndex = payload.playerIndex;
                     this.showMessage('재접속에 성공했습니다!', 'success');
+                    // Game state will follow automatically from server
                 }
 
                 renderGameState() {

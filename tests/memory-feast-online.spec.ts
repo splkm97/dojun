@@ -485,6 +485,70 @@ test.describe('Multi-Player Scenarios', () => {
       await context2.close()
     }
   })
+
+  test('should reconnect and restore game state after browser refresh', async ({ browser }) => {
+    test.setTimeout(45000)
+
+    const context1 = await browser.newContext()
+    const context2 = await browser.newContext()
+
+    const page1 = await context1.newPage()
+    const page2 = await context2.newPage()
+
+    try {
+      // Setup: Create a game between two players
+      await navigateToOnlineGame(page1)
+      await navigateToOnlineGame(page2)
+
+      await expect(page1.locator('#connection-status')).toHaveClass(/connected/, { timeout: 10000 })
+      await expect(page2.locator('#connection-status')).toHaveClass(/connected/, { timeout: 10000 })
+
+      // Player 1 creates room
+      await fillNickname(page1, 'Host')
+      await page1.locator('button:has-text("방 만들기")').click()
+
+      await expect(page1.locator('#waiting-screen')).toBeVisible({ timeout: 10000 })
+      await page1.waitForFunction(() => {
+        const el = document.getElementById('room-code-display')
+        return el && el.textContent && el.textContent.length === 6
+      }, { timeout: 10000 })
+
+      const roomCode = await page1.locator('#room-code-display').textContent()
+
+      // Player 2 joins
+      await fillNickname(page2, 'Guest')
+      await fillRoomCode(page2, roomCode!)
+      await page2.locator('.room-code-input button').click()
+
+      // Both in game
+      await Promise.all([
+        expect(page1.locator('#game-screen')).toBeVisible({ timeout: 20000 }),
+        expect(page2.locator('#game-screen')).toBeVisible({ timeout: 20000 })
+      ])
+
+      // Verify game state before refresh
+      await expect(page1.locator('#phase-title')).toContainText('배치')
+
+      // ACTION: Player 1 refreshes browser
+      await page1.reload()
+
+      // EXPECTED: Player 1 should automatically reconnect to the game
+      await expect(page1.locator('#connection-status')).toHaveClass(/connected/, { timeout: 10000 })
+
+      // CRITICAL: Should be back in game screen, NOT lobby
+      await expect(page1.locator('#game-screen')).toBeVisible({ timeout: 10000 })
+
+      // Game state should be preserved
+      await expect(page1.locator('#phase-title')).toContainText('배치')
+
+      // Player 2 should still see opponent as connected
+      await expect(page2.locator('#player0-info')).not.toHaveClass(/disconnected/, { timeout: 5000 })
+
+    } finally {
+      await context1.close()
+      await context2.close()
+    }
+  })
 })
 
 // =============================================================================
