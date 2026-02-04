@@ -1,0 +1,32 @@
+{
+  "name": "dojun",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:local": "playwright test memory-feast-local.spec.ts",
+    "test:online": "playwright test memory-feast-online.spec.ts",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "serve": "serve -l 3000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/splkm97/dojun.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/splkm97/dojun/issues"
+  },
+  "homepage": "https://github.com/splkm97/dojun#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.1",
+    "serve": "^14.2.5",
+    "typescript": "^5.9.3"
+  }
+}

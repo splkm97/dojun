@@ -1,0 +1,2091 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>기억의 만찬</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                min-height: 100vh;
+                color: #fff;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 10px;
+            }
+
+            /* 게임 화면 전용 컴팩트 스타일 */
+            #game-screen h1 {
+                font-size: 1.8rem;
+                margin-bottom: 5px;
+            }
+
+            h1 {
+                text-align: center;
+                font-size: 2.5rem;
+                margin-bottom: 10px;
+                color: #ffd700;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            }
+
+            .game-info {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                padding: 8px 15px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+            }
+
+            .player-info {
+                text-align: center;
+                padding: 5px 15px;
+                border-radius: 8px;
+                min-width: 120px;
+            }
+
+            .player-info.active {
+                background: rgba(255, 215, 0, 0.3);
+                border: 2px solid #ffd700;
+            }
+
+            .player-info h3 {
+                margin-bottom: 3px;
+                font-size: 0.95rem;
+            }
+
+            .player-info .tokens {
+                font-size: 1.2rem;
+                font-weight: bold;
+            }
+
+            .phase-info {
+                text-align: center;
+                padding: 5px 20px;
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 8px;
+            }
+
+            .phase-info h2 {
+                color: #ffd700;
+                margin-bottom: 3px;
+                font-size: 1.1rem;
+            }
+
+            .timer {
+                font-size: 1.5rem;
+                font-weight: bold;
+                color: #ff6b6b;
+            }
+
+            .timer.warning {
+                animation: blink 0.5s infinite;
+            }
+
+            @keyframes blink {
+                50% {
+                    opacity: 0.5;
+                }
+            }
+
+            .plates-container {
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 8px;
+                margin-bottom: 10px;
+                max-width: 600px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .plate {
+                aspect-ratio: 1;
+                position: relative;
+                cursor: pointer;
+                transition: transform 0.2s;
+            }
+
+            .plate:hover:not(.disabled) {
+                transform: scale(1.05);
+            }
+
+            .plate.disabled {
+                cursor: not-allowed;
+                opacity: 0.6;
+            }
+
+            .plate-base {
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(145deg, #f5f5f5, #e0e0e0);
+                border-radius: 50%;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                border: 2px solid #ccc;
+                box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+            }
+
+            .plate-number {
+                font-size: 0.9rem;
+                font-weight: bold;
+                color: #333;
+            }
+
+            .token-count {
+                font-size: 1.1rem;
+                font-weight: bold;
+                color: #e74c3c;
+                margin-top: 2px;
+            }
+
+            .plate-cover {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(145deg, #8b4513, #654321);
+                border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border: 2px solid #5d3a1a;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+                transition:
+                    transform 0.5s,
+                    opacity 0.5s;
+            }
+
+            .plate-cover.open {
+                transform: translateY(-100%) rotateX(60deg);
+                opacity: 0;
+            }
+
+            .plate-cover .cover-number {
+                font-size: 1.2rem;
+                font-weight: bold;
+                color: #ffd700;
+            }
+
+            .plate.selected .plate-cover {
+                border-color: #ffd700;
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+            }
+
+            .plate.selected-first .plate-cover {
+                border-color: #3498db;
+                box-shadow: 0 0 20px rgba(52, 152, 219, 0.6);
+            }
+
+            .plate.selected-second .plate-cover {
+                border-color: #e74c3c;
+                box-shadow: 0 0 20px rgba(231, 76, 60, 0.6);
+            }
+
+            .plate.token-added .plate-cover {
+                border-color: #2ecc71;
+                box-shadow: 0 0 25px rgba(46, 204, 113, 0.8);
+                animation: pulse-green 0.3s ease-in-out 3;
+            }
+
+            @keyframes pulse-green {
+                0%,
+                100% {
+                    box-shadow: 0 0 15px rgba(46, 204, 113, 0.6);
+                }
+                50% {
+                    box-shadow: 0 0 30px rgba(46, 204, 113, 1);
+                }
+            }
+
+            .controls {
+                text-align: center;
+                margin-top: 10px;
+            }
+
+            .btn {
+                padding: 10px 24px;
+                font-size: 1rem;
+                font-weight: bold;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.3s;
+                margin: 5px;
+            }
+
+            .btn-primary {
+                background: linear-gradient(145deg, #ffd700, #ffb700);
+                color: #1a1a2e;
+            }
+
+            .btn-primary:hover {
+                background: linear-gradient(145deg, #ffb700, #ffd700);
+                transform: translateY(-2px);
+            }
+
+            .btn-secondary {
+                background: linear-gradient(145deg, #3498db, #2980b9);
+                color: #fff;
+            }
+
+            .btn-secondary:hover {
+                background: linear-gradient(145deg, #2980b9, #3498db);
+            }
+
+            .btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+            .message {
+                text-align: center;
+                padding: 10px;
+                margin: 8px auto;
+                border-radius: 8px;
+                font-size: 1rem;
+                max-width: 600px;
+            }
+
+            .message.success {
+                background: rgba(46, 204, 113, 0.3);
+                border: 2px solid #2ecc71;
+            }
+
+            .message.fail {
+                background: rgba(231, 76, 60, 0.3);
+                border: 2px solid #e74c3c;
+            }
+
+            .message.info {
+                background: rgba(52, 152, 219, 0.3);
+                border: 2px solid #3498db;
+            }
+
+            .modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+
+            .modal.show {
+                display: flex;
+            }
+
+            .modal-content {
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                padding: 40px;
+                border-radius: 15px;
+                text-align: center;
+                border: 3px solid #ffd700;
+                max-width: 500px;
+            }
+
+            .modal-content h2 {
+                color: #ffd700;
+                font-size: 2rem;
+                margin-bottom: 20px;
+            }
+
+            .modal-content p {
+                font-size: 1.2rem;
+                margin-bottom: 20px;
+            }
+
+            .winner-announcement {
+                font-size: 1.5rem;
+                color: #2ecc71;
+                margin: 20px 0;
+            }
+
+            .placement-info {
+                background: rgba(255, 255, 255, 0.1);
+                padding: 8px 15px;
+                border-radius: 8px;
+                margin: 8px auto;
+                max-width: 600px;
+                text-align: center;
+            }
+
+            .placement-info h3 {
+                color: #ffd700;
+                margin-bottom: 5px;
+                font-size: 1rem;
+            }
+
+            .current-placement {
+                font-size: 1rem;
+            }
+
+            /* 튜토리얼 모달 */
+            .tutorial-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.9);
+                justify-content: center;
+                align-items: center;
+                z-index: 1001;
+            }
+
+            .tutorial-modal.show {
+                display: flex;
+            }
+
+            .tutorial-content {
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                padding: 30px;
+                border-radius: 15px;
+                border: 3px solid #ffd700;
+                max-width: 500px;
+                width: 90%;
+                text-align: center;
+            }
+
+            .tutorial-content h2 {
+                color: #ffd700;
+                font-size: 1.8rem;
+                margin-bottom: 20px;
+            }
+
+            .tutorial-step {
+                display: none;
+            }
+
+            .tutorial-step.active {
+                display: block;
+            }
+
+            .tutorial-step h3 {
+                color: #3498db;
+                font-size: 1.3rem;
+                margin-bottom: 15px;
+            }
+
+            .tutorial-step p {
+                font-size: 1rem;
+                line-height: 1.6;
+                margin-bottom: 15px;
+                text-align: left;
+            }
+
+            .tutorial-step .highlight {
+                color: #ffd700;
+                font-weight: bold;
+            }
+
+            .tutorial-step .success {
+                color: #2ecc71;
+            }
+
+            .tutorial-step .fail {
+                color: #e74c3c;
+            }
+
+            .tutorial-image {
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                padding: 20px;
+                margin: 15px 0;
+                font-size: 2rem;
+            }
+
+            .tutorial-progress {
+                display: flex;
+                justify-content: center;
+                gap: 8px;
+                margin: 20px 0;
+            }
+
+            .tutorial-dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.3);
+            }
+
+            .tutorial-dot.active {
+                background: #ffd700;
+            }
+
+            .tutorial-dot.completed {
+                background: #2ecc71;
+            }
+
+            .tutorial-buttons {
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+                margin-top: 20px;
+            }
+
+            .tutorial-buttons .btn {
+                min-width: 100px;
+            }
+
+            /* 플로팅 확인 버튼 */
+            .floating-confirm {
+                position: fixed;
+                right: 20px;
+                bottom: 20px;
+                z-index: 100;
+                display: none;
+            }
+
+            .floating-confirm.show {
+                display: block;
+            }
+
+            .floating-confirm .btn {
+                padding: 15px 25px;
+                font-size: 1.1rem;
+                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+            }
+
+            .start-screen {
+                text-align: center;
+                padding: 50px;
+            }
+
+            .start-screen h1 {
+                font-size: 3rem;
+                margin-bottom: 30px;
+            }
+
+            .start-screen p {
+                font-size: 1.2rem;
+                margin-bottom: 20px;
+                max-width: 600px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .rules-summary {
+                text-align: left;
+                background: rgba(255, 255, 255, 0.1);
+                padding: 20px;
+                border-radius: 10px;
+                max-width: 700px;
+                margin: 20px auto;
+            }
+
+            .rules-summary h3 {
+                color: #ffd700;
+                margin-bottom: 10px;
+            }
+
+            .rules-summary ul {
+                margin-left: 20px;
+                margin-bottom: 15px;
+            }
+
+            .rules-summary li {
+                margin: 8px 0;
+            }
+
+            .add-token-selection {
+                display: none;
+                margin-top: 15px;
+            }
+
+            .add-token-selection.show {
+                display: block;
+            }
+
+            .add-token-selection p {
+                margin-bottom: 10px;
+                color: #ffd700;
+            }
+
+            .settings-panel {
+                background: rgba(255, 255, 255, 0.1);
+                padding: 20px;
+                border-radius: 10px;
+                max-width: 400px;
+                margin: 20px auto;
+            }
+
+            .settings-panel h3 {
+                color: #ffd700;
+                margin-bottom: 15px;
+                text-align: center;
+            }
+
+            .setting-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .setting-item label {
+                font-size: 1.1rem;
+            }
+
+            .plate-selector {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+            }
+
+            .plate-selector span {
+                font-size: 2rem;
+                font-weight: bold;
+                color: #ffd700;
+                min-width: 60px;
+                text-align: center;
+            }
+
+            .btn-small {
+                padding: 8px 16px;
+                font-size: 1.2rem;
+                font-weight: bold;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                background: linear-gradient(145deg, #3498db, #2980b9);
+                color: #fff;
+                transition: all 0.2s;
+            }
+
+            .btn-small:hover {
+                background: linear-gradient(145deg, #2980b9, #3498db);
+                transform: scale(1.1);
+            }
+
+            .btn-small:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+            .setting-hint {
+                font-size: 0.9rem;
+                color: #aaa;
+            }
+
+            .mode-selector,
+            .difficulty-selector,
+            .first-selector {
+                display: flex;
+                gap: 10px;
+            }
+
+            .btn-mode,
+            .btn-diff {
+                padding: 8px 16px;
+                font-size: 1rem;
+                font-weight: bold;
+                border: 2px solid #555;
+                border-radius: 5px;
+                cursor: pointer;
+                background: rgba(255, 255, 255, 0.1);
+                color: #fff;
+                transition: all 0.2s;
+            }
+
+            .btn-mode:hover,
+            .btn-diff:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+
+            .btn-mode.active,
+            .btn-diff.active {
+                background: linear-gradient(145deg, #ffd700, #ffb700);
+                color: #1a1a2e;
+                border-color: #ffd700;
+            }
+
+            .ai-settings {
+                margin-top: 15px;
+                padding-top: 15px;
+                border-top: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            /* 모바일 반응형 */
+            @media (max-width: 768px) {
+                .container {
+                    padding: 10px;
+                }
+
+                h1 {
+                    font-size: 1.8rem;
+                    margin-bottom: 8px;
+                }
+
+                .start-screen {
+                    padding: 20px 10px;
+                }
+
+                .start-screen h1 {
+                    font-size: 2rem;
+                    margin-bottom: 15px;
+                }
+
+                .start-screen p {
+                    font-size: 1rem;
+                    margin-bottom: 15px;
+                }
+
+                .rules-summary {
+                    padding: 15px;
+                    margin: 15px auto;
+                }
+
+                .rules-summary ul {
+                    margin-left: 15px;
+                }
+
+                .rules-summary li {
+                    font-size: 0.9rem;
+                    margin: 6px 0;
+                }
+
+                .settings-panel {
+                    padding: 15px;
+                    margin: 15px auto;
+                }
+
+                .game-info {
+                    flex-direction: column;
+                    gap: 10px;
+                    padding: 10px;
+                }
+
+                .player-info {
+                    padding: 8px 15px;
+                    min-width: auto;
+                    width: 100%;
+                }
+
+                .player-info h3 {
+                    font-size: 0.9rem;
+                }
+
+                .player-info .tokens {
+                    font-size: 1.2rem;
+                }
+
+                .phase-info {
+                    padding: 8px 15px;
+                    order: -1;
+                    width: 100%;
+                }
+
+                .phase-info h2 {
+                    font-size: 1.1rem;
+                }
+
+                .timer {
+                    font-size: 1.5rem;
+                }
+
+                .plates-container {
+                    grid-template-columns: repeat(5, 1fr) !important;
+                    gap: 6px;
+                }
+
+                .plate-number {
+                    font-size: 0.8rem;
+                }
+
+                .token-count {
+                    font-size: 1rem;
+                }
+
+                .plate-cover .cover-number {
+                    font-size: 1.1rem;
+                }
+
+                .placement-info {
+                    padding: 10px;
+                    margin: 10px 0;
+                }
+
+                .placement-info h3 {
+                    font-size: 1rem;
+                }
+
+                .current-placement {
+                    font-size: 1rem;
+                }
+
+                .controls {
+                    margin-top: 15px;
+                }
+
+                .btn {
+                    padding: 10px 20px;
+                    font-size: 1rem;
+                }
+
+                .history-log {
+                    max-height: 100px;
+                    font-size: 0.8rem;
+                    padding: 8px;
+                }
+
+                .log-modal-content {
+                    padding: 20px;
+                    max-width: 95%;
+                }
+
+                .log-modal-content h2 {
+                    font-size: 1.3rem;
+                }
+
+                .log-modal-body {
+                    max-height: 60vh;
+                    padding: 10px;
+                }
+
+                .log-modal-body p {
+                    font-size: 0.85rem;
+                    padding: 6px;
+                }
+
+                .message {
+                    font-size: 1rem;
+                    padding: 10px;
+                }
+
+                .modal-content {
+                    padding: 25px;
+                    margin: 10px;
+                    max-width: 90%;
+                }
+
+                .modal-content h2 {
+                    font-size: 1.5rem;
+                }
+
+                .winner-announcement {
+                    font-size: 1.2rem;
+                }
+
+                .modal-content p {
+                    font-size: 1rem;
+                }
+            }
+
+            @media (max-width: 480px) {
+                h1 {
+                    font-size: 1.5rem;
+                }
+
+                .start-screen h1 {
+                    font-size: 1.6rem;
+                }
+
+                .plates-container {
+                    grid-template-columns: repeat(5, 1fr) !important;
+                    gap: 4px;
+                }
+
+                .plate-number {
+                    font-size: 0.7rem;
+                }
+
+                .token-count {
+                    font-size: 0.85rem;
+                }
+
+                .plate-cover .cover-number {
+                    font-size: 0.9rem;
+                }
+
+                .game-info {
+                    padding: 8px;
+                }
+
+                .player-info {
+                    padding: 6px 10px;
+                }
+
+                .player-info h3 {
+                    font-size: 0.8rem;
+                }
+
+                .player-info .tokens {
+                    font-size: 1rem;
+                }
+
+                .phase-info h2 {
+                    font-size: 1rem;
+                }
+
+                .timer {
+                    font-size: 1.3rem;
+                }
+
+                .btn {
+                    padding: 8px 16px;
+                    font-size: 0.9rem;
+                }
+
+                .btn-small {
+                    padding: 6px 12px;
+                    font-size: 1rem;
+                }
+
+                .plate-selector span {
+                    font-size: 1.5rem;
+                    min-width: 50px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container" id="app">
+            <!-- Start Screen -->
+            <div id="start-screen" class="start-screen">
+                <h1>기억의 만찬</h1>
+                <p>
+                    커버로 덮여있는 그릇 중에서 같은 개수의 토큰이 들어있는 두
+                    그릇을 찾는 기억력 게임입니다.
+                </p>
+
+                <div class="settings-panel">
+                    <h3>게임 설정</h3>
+
+                    <div class="setting-item">
+                        <label>게임 모드:</label>
+                        <div class="mode-selector">
+                            <button
+                                class="btn btn-mode active"
+                                id="mode-pvp"
+                                onclick="game.setGameMode('pvp')"
+                            >
+                                2인 대전
+                            </button>
+                            <button
+                                class="btn btn-mode"
+                                id="mode-ai"
+                                onclick="game.setGameMode('ai')"
+                            >
+                                AI 대전
+                            </button>
+                        </div>
+                    </div>
+
+                    <div
+                        class="setting-item ai-settings"
+                        id="ai-settings"
+                        style="display: none"
+                    >
+                        <label>AI 난이도:</label>
+                        <div class="difficulty-selector">
+                            <button
+                                class="btn btn-diff"
+                                id="diff-easy"
+                                onclick="game.setDifficulty('easy')"
+                            >
+                                하
+                            </button>
+                            <button
+                                class="btn btn-diff active"
+                                id="diff-medium"
+                                onclick="game.setDifficulty('medium')"
+                            >
+                                중
+                            </button>
+                            <button
+                                class="btn btn-diff"
+                                id="diff-hard"
+                                onclick="game.setDifficulty('hard')"
+                            >
+                                상
+                            </button>
+                        </div>
+                        <p class="setting-hint" id="difficulty-hint">
+                            AI가 70~85% 확률로 기억합니다
+                        </p>
+                    </div>
+
+                    <div
+                        class="setting-item ai-settings"
+                        id="first-player-settings"
+                        style="display: none"
+                    >
+                        <label>선공 선택:</label>
+                        <div class="first-selector">
+                            <button
+                                class="btn btn-mode active"
+                                id="first-player"
+                                onclick="game.setFirstPlayer('player')"
+                            >
+                                플레이어
+                            </button>
+                            <button
+                                class="btn btn-mode"
+                                id="first-ai"
+                                onclick="game.setFirstPlayer('ai')"
+                            >
+                                AI
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <label>그릇 개수:</label>
+                        <div class="plate-selector">
+                            <button
+                                class="btn btn-small"
+                                onclick="game.adjustPlateCount(-2)"
+                            >
+                                -
+                            </button>
+                            <span id="plate-count-display">20</span>
+                            <button
+                                class="btn btn-small"
+                                onclick="game.adjustPlateCount(2)"
+                            >
+                                +
+                            </button>
+                        </div>
+                        <p class="setting-hint">4 ~ 20개 (짝수만 가능)</p>
+                    </div>
+                </div>
+
+                <div class="rules-summary">
+                    <h3>게임 규칙</h3>
+                    <ul>
+                        <li>
+                            <strong>배치 단계:</strong> 각 플레이어가 번갈아가며
+                            1~9개의 토큰을 접시에 배치합니다.
+                        </li>
+                        <li>
+                            <strong>매칭 단계:</strong> 1분 안에 같은 개수의
+                            토큰이 든 접시 2개를 찾으세요.
+                        </li>
+                        <li>
+                            <strong>매치 성공:</strong> 접시 하나에 토큰 1개를
+                            추가할 수 있습니다.
+                        </li>
+                        <li>
+                            <strong>매치 실패:</strong> 페널티로 토큰 1개를
+                            받습니다.
+                        </li>
+                        <li>
+                            <strong>시간 초과:</strong> 페널티로 토큰 2개를
+                            받습니다.
+                        </li>
+                        <li>
+                            <strong>승리 조건:</strong> 게임 토큰을 먼저 모두
+                            소진한 플레이어가 승리!
+                        </li>
+                    </ul>
+                    <p style="color: #ff6b6b; margin-top: 15px">
+                        ⚠️ 토큰 개수는 오직 암기로만 기억해야 합니다. 메모 금지!
+                    </p>
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: center">
+                    <button
+                        class="btn btn-secondary"
+                        onclick="game.showTutorial()"
+                    >
+                        게임 방법
+                    </button>
+                    <button class="btn btn-primary" onclick="game.startGame()">
+                        게임 시작
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tutorial Modal -->
+            <div class="tutorial-modal" id="tutorial-modal">
+                <div class="tutorial-content">
+                    <h2>게임 방법</h2>
+
+                    <div class="tutorial-step active" data-step="1">
+                        <h3>1. 게임 목표</h3>
+                        <div class="tutorial-image">🏆</div>
+                        <p>
+                            자신의
+                            <span class="highlight"
+                                >게임 토큰을 먼저 모두 소진</span
+                            >하면 승리합니다!
+                        </p>
+                        <p>
+                            토큰을 소진하려면
+                            <span class="success">매치에 성공</span>해야 합니다.
+                        </p>
+                    </div>
+
+                    <div class="tutorial-step" data-step="2">
+                        <h3>2. 배치 단계</h3>
+                        <div class="tutorial-image">🍽️ → 🔢</div>
+                        <p>
+                            두 플레이어가
+                            <span class="highlight">번갈아가며</span> 빈 접시에
+                            토큰을 배치합니다.
+                        </p>
+                        <p>
+                            1라운드에는 1개, 2라운드에는 2개... 점점 늘어납니다.
+                        </p>
+                        <p>
+                            <span class="fail"
+                                >상대가 어디에 몇 개를 놓는지 잘
+                                기억하세요!</span
+                            >
+                        </p>
+                    </div>
+
+                    <div class="tutorial-step" data-step="3">
+                        <h3>3. 매칭 단계</h3>
+                        <div class="tutorial-image">🍽️ = 🍽️ ?</div>
+                        <p>
+                            <span class="highlight">같은 개수</span>의 토큰이
+                            담긴 접시 2개를 찾으세요.
+                        </p>
+                        <p>
+                            제한 시간은
+                            <span class="highlight">60초</span>입니다.
+                        </p>
+                    </div>
+
+                    <div class="tutorial-step" data-step="4">
+                        <h3>4. 매치 결과</h3>
+                        <div class="tutorial-image">✅ / ❌</div>
+                        <p>
+                            <span class="success">성공:</span> 매치된 접시 중
+                            하나에 토큰 1개를 추가합니다. (토큰 -1)
+                        </p>
+                        <p>
+                            <span class="fail">실패:</span> 페널티로 토큰 1개를
+                            받습니다. (토큰 +1)
+                        </p>
+                        <p>
+                            <span class="fail">시간 초과:</span> 페널티로 토큰
+                            2개를 받습니다. (토큰 +2)
+                        </p>
+                    </div>
+
+                    <div class="tutorial-step" data-step="5">
+                        <h3>5. 핵심 전략</h3>
+                        <div class="tutorial-image">🧠</div>
+                        <p>
+                            <span class="highlight">메모는 금지!</span> 오직
+                            머릿속으로만 기억해야 합니다.
+                        </p>
+                        <p>상대방의 배치와 매치 결과를 잘 관찰하세요.</p>
+                        <p>토큰 추가 시 어떤 접시를 선택할지도 전략입니다!</p>
+                    </div>
+
+                    <div class="tutorial-progress">
+                        <div class="tutorial-dot active" data-dot="1"></div>
+                        <div class="tutorial-dot" data-dot="2"></div>
+                        <div class="tutorial-dot" data-dot="3"></div>
+                        <div class="tutorial-dot" data-dot="4"></div>
+                        <div class="tutorial-dot" data-dot="5"></div>
+                    </div>
+
+                    <div class="tutorial-buttons">
+                        <button
+                            class="btn btn-secondary"
+                            id="tutorial-prev"
+                            onclick="game.tutorialPrev()"
+                            style="display: none"
+                        >
+                            이전
+                        </button>
+                        <button
+                            class="btn btn-primary"
+                            id="tutorial-next"
+                            onclick="game.tutorialNext()"
+                        >
+                            다음
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Screen -->
+            <div id="game-screen" style="display: none">
+                <h1>기억의 만찬</h1>
+
+                <div class="game-info">
+                    <div class="player-info" id="player1-info">
+                        <h3>플레이어 1</h3>
+                        <div class="tokens" id="player1-tokens">-</div>
+                    </div>
+
+                    <div class="phase-info">
+                        <h2 id="phase-title">배치 단계</h2>
+                        <div id="phase-description"></div>
+                        <div class="timer" id="timer" style="display: none">
+                            60
+                        </div>
+                    </div>
+
+                    <div class="player-info" id="player2-info">
+                        <h3>플레이어 2</h3>
+                        <div class="tokens" id="player2-tokens">-</div>
+                    </div>
+                </div>
+
+                <div class="placement-info" id="placement-info">
+                    <h3>현재 배치</h3>
+                    <div class="current-placement" id="current-placement"></div>
+                </div>
+
+                <div id="message-area"></div>
+
+                <div class="plates-container" id="plates-container"></div>
+
+                <div class="add-token-selection" id="add-token-selection">
+                    <p>토큰을 추가할 접시를 선택하세요:</p>
+                </div>
+            </div>
+
+            <!-- Floating Confirm Button -->
+            <div class="floating-confirm" id="floating-confirm">
+                <button
+                    class="btn btn-primary"
+                    onclick="game.confirmSelection()"
+                >
+                    선택 확인
+                </button>
+            </div>
+
+            <!-- Result Modal -->
+            <div class="modal" id="result-modal">
+                <div class="modal-content">
+                    <h2 id="result-title">게임 종료!</h2>
+                    <div
+                        class="winner-announcement"
+                        id="winner-announcement"
+                    ></div>
+                    <p id="result-description"></p>
+                    <button class="btn btn-primary" onclick="game.resetGame()">
+                        다시 하기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            class MemoryFeast {
+                constructor() {
+                    this.plates = []; // {tokens: number, covered: boolean}
+                    this.currentPlayer = 1;
+                    this.phase = "start"; // start, placement, matching
+                    this.placementRound = 1;
+                    this.playerTokens = { 1: 0, 2: 0 }; // 게임 토큰
+                    this.selectedPlates = [];
+                    this.timer = null;
+                    this.timeLeft = 60;
+                    this.matchedPlateIndices = [];
+
+                    // 설정 가능한 값
+                    this.plateCount = 20; // 4~20 (짝수)
+                    this.maxPlacementRound = 9; // plateCount/2 - 1
+
+                    // Race condition 방지
+                    this.isProcessing = false;
+
+                    // AI 모드 설정
+                    this.gameMode = "pvp"; // 'pvp' or 'ai'
+                    this.aiDifficulty = "medium"; // 'easy', 'medium', 'hard'
+                    this.firstPlayer = "player"; // 'player' or 'ai'
+                    this.aiMemory = {}; // AI가 기억하는 접시 정보 {index: tokens}
+                    this.aiPlayer = 2; // AI가 담당하는 플레이어 번호
+                }
+
+                // AI 모드 설정 메서드들
+                setGameMode(mode) {
+                    this.gameMode = mode;
+                    document
+                        .getElementById("mode-pvp")
+                        .classList.toggle("active", mode === "pvp");
+                    document
+                        .getElementById("mode-ai")
+                        .classList.toggle("active", mode === "ai");
+                    document.getElementById("ai-settings").style.display =
+                        mode === "ai" ? "block" : "none";
+                    document.getElementById(
+                        "first-player-settings",
+                    ).style.display = mode === "ai" ? "block" : "none";
+                }
+
+                setDifficulty(difficulty) {
+                    this.aiDifficulty = difficulty;
+                    document
+                        .getElementById("diff-easy")
+                        .classList.toggle("active", difficulty === "easy");
+                    document
+                        .getElementById("diff-medium")
+                        .classList.toggle("active", difficulty === "medium");
+                    document
+                        .getElementById("diff-hard")
+                        .classList.toggle("active", difficulty === "hard");
+
+                    const hints = {
+                        easy: "AI가 40~60% 확률로 기억합니다",
+                        medium: "AI가 70~85% 확률로 기억합니다",
+                        hard: "AI가 95~100% 확률로 기억합니다",
+                    };
+                    document.getElementById("difficulty-hint").textContent =
+                        hints[difficulty];
+                }
+
+                setFirstPlayer(first) {
+                    this.firstPlayer = first;
+                    document
+                        .getElementById("first-player")
+                        .classList.toggle("active", first === "player");
+                    document
+                        .getElementById("first-ai")
+                        .classList.toggle("active", first === "ai");
+                }
+
+                // AI 기억력 확률 반환
+                getAiMemoryChance() {
+                    const chances = {
+                        easy: 0.4 + Math.random() * 0.2, // 40~60%
+                        medium: 0.7 + Math.random() * 0.15, // 70~85%
+                        hard: 0.95 + Math.random() * 0.05, // 95~100%
+                    };
+                    return chances[this.aiDifficulty];
+                }
+
+                // AI가 접시 정보를 기억하려고 시도
+                aiTryRemember(index, tokens) {
+                    if (Math.random() < this.getAiMemoryChance()) {
+                        this.aiMemory[index] = tokens;
+                    }
+                }
+
+                // AI가 접시 정보를 업데이트 (토큰 추가 시)
+                aiUpdateMemory(index, newTokens) {
+                    if (this.aiMemory[index] !== undefined) {
+                        // 이미 기억하고 있으면 업데이트 시도
+                        if (Math.random() < this.getAiMemoryChance()) {
+                            this.aiMemory[index] = newTokens;
+                        }
+                    }
+                }
+
+                // AI 턴인지 확인
+                isAiTurn() {
+                    if (this.gameMode !== "ai") return false;
+                    return this.currentPlayer === this.aiPlayer;
+                }
+
+                adjustPlateCount(delta) {
+                    const newCount = this.plateCount + delta;
+                    if (newCount >= 4 && newCount <= 20) {
+                        this.plateCount = newCount;
+                        this.maxPlacementRound =
+                            Math.floor(this.plateCount / 2) - 1;
+                        document.getElementById(
+                            "plate-count-display",
+                        ).textContent = this.plateCount;
+                        this.updateRulesDisplay();
+                    }
+                }
+
+                updateRulesDisplay() {
+                    // 규칙 설명의 배치 토큰 개수 업데이트
+                    const rulesText = document.querySelector(
+                        ".rules-summary li:first-child",
+                    );
+                    if (rulesText) {
+                        rulesText.innerHTML = `<strong>배치 단계:</strong> 각 플레이어가 번갈아가며 1~${this.maxPlacementRound}개의 토큰을 접시에 배치합니다.`;
+                    }
+                }
+
+                startGame() {
+                    document.getElementById("start-screen").style.display =
+                        "none";
+                    document.getElementById("game-screen").style.display =
+                        "block";
+
+                    // Initialize plates based on plateCount
+                    this.plates = Array(this.plateCount)
+                        .fill(null)
+                        .map(() => ({
+                            tokens: 0,
+                            covered: true,
+                            hasTokens: false,
+                        }));
+
+                    // AI 모드 설정
+                    this.aiMemory = {};
+                    if (this.gameMode === "ai") {
+                        this.aiPlayer = this.firstPlayer === "player" ? 2 : 1;
+                        // 플레이어 이름 업데이트
+                        document.querySelector("#player1-info h3").textContent =
+                            this.aiPlayer === 1 ? "AI" : "플레이어";
+                        document.querySelector("#player2-info h3").textContent =
+                            this.aiPlayer === 2 ? "AI" : "플레이어";
+                    } else {
+                        document.querySelector("#player1-info h3").textContent =
+                            "플레이어 1";
+                        document.querySelector("#player2-info h3").textContent =
+                            "플레이어 2";
+                    }
+
+                    this.currentPlayer = 1;
+                    this.phase = "placement";
+                    this.placementRound = 1;
+                    this.playerTokens = { 1: 0, 2: 0 };
+                    this.selectedPlates = [];
+
+                    // 그리드 컬럼 수 조정
+                    this.updateGridColumns();
+
+                    this.renderPlates();
+                    this.updateUI();
+
+                    // AI가 선공이면 AI 턴 시작
+                    if (this.isAiTurn()) {
+                        this.scheduleAiTurn();
+                    }
+                }
+
+                // AI 턴 예약 (1초 딜레이)
+                scheduleAiTurn() {
+                    setTimeout(() => {
+                        if (this.phase === "placement") {
+                            this.aiPlacementTurn();
+                        } else if (this.phase === "matching") {
+                            this.aiMatchingTurn();
+                        } else if (this.phase === "add-token") {
+                            this.aiAddTokenTurn();
+                        }
+                    }, 1000);
+                }
+
+                // AI 배치 턴
+                aiPlacementTurn() {
+                    // 빈 접시 중 랜덤 선택
+                    const emptyPlates = this.plates
+                        .map((p, i) => ({ index: i, plate: p }))
+                        .filter((item) => !item.plate.hasTokens);
+
+                    if (emptyPlates.length === 0) return;
+
+                    const randomIndex =
+                        emptyPlates[
+                            Math.floor(Math.random() * emptyPlates.length)
+                        ].index;
+
+                    // AI도 자신이 놓은 것 기억 시도
+                    this.aiTryRemember(randomIndex, this.placementRound);
+
+                    this.handlePlacementClick(randomIndex);
+                }
+
+                // AI 매칭 턴
+                aiMatchingTurn() {
+                    this.stopTimer(); // AI는 타이머 무시
+
+                    // 기억한 접시들 중 같은 토큰 수를 가진 쌍 찾기
+                    const rememberedPairs = this.findRememberedPairs();
+
+                    let plate1, plate2;
+
+                    if (rememberedPairs.length > 0) {
+                        // 기억한 쌍이 있으면 선택
+                        const pair =
+                            rememberedPairs[
+                                Math.floor(
+                                    Math.random() * rememberedPairs.length,
+                                )
+                            ];
+                        plate1 = pair[0];
+                        plate2 = pair[1];
+                    } else {
+                        // 기억한 쌍이 없으면 랜덤 2개 선택 (정보 수집)
+                        const indices = Array.from(
+                            { length: this.plateCount },
+                            (_, i) => i,
+                        );
+                        plate1 = indices.splice(
+                            Math.floor(Math.random() * indices.length),
+                            1,
+                        )[0];
+                        plate2 =
+                            indices[Math.floor(Math.random() * indices.length)];
+                    }
+
+                    this.selectedPlates = [plate1, plate2];
+                    this.renderPlates();
+
+                    // 1초 후 확인
+                    setTimeout(() => {
+                        this.confirmSelection();
+                    }, 1000);
+                }
+
+                // 기억한 접시들 중 쌍 찾기
+                findRememberedPairs() {
+                    const pairs = [];
+                    const indices = Object.keys(this.aiMemory).map(Number);
+
+                    for (let i = 0; i < indices.length; i++) {
+                        for (let j = i + 1; j < indices.length; j++) {
+                            const idx1 = indices[i];
+                            const idx2 = indices[j];
+                            // 기억한 값과 실제 값이 같은지 확인 (AI가 잘못 기억했을 수도 있음)
+                            if (
+                                this.aiMemory[idx1] === this.aiMemory[idx2] &&
+                                this.plates[idx1].tokens ===
+                                    this.plates[idx2].tokens
+                            ) {
+                                pairs.push([idx1, idx2]);
+                            }
+                        }
+                    }
+                    return pairs;
+                }
+
+                // AI 토큰 추가 턴
+                aiAddTokenTurn() {
+                    // 매치된 접시 중 랜덤 선택
+                    const randomIndex =
+                        this.matchedPlateIndices[
+                            Math.floor(
+                                Math.random() * this.matchedPlateIndices.length,
+                            )
+                        ];
+                    this.handleAddTokenClick(randomIndex);
+                }
+
+                updateGridColumns() {
+                    const container =
+                        document.getElementById("plates-container");
+                    // 그릇 수에 따라 컬럼 수 조정
+                    let columns;
+                    if (this.plateCount <= 4) {
+                        columns = 2;
+                    } else if (this.plateCount <= 8) {
+                        columns = 4;
+                    } else if (this.plateCount <= 12) {
+                        columns = 4;
+                    } else {
+                        columns = 5;
+                    }
+                    container.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+                }
+
+                renderPlates() {
+                    const container =
+                        document.getElementById("plates-container");
+                    container.innerHTML = "";
+
+                    this.plates.forEach((plate, index) => {
+                        const plateEl = document.createElement("div");
+                        plateEl.className = "plate";
+                        plateEl.dataset.index = index;
+
+                        if (this.phase === "placement" && plate.hasTokens) {
+                            plateEl.classList.add("disabled");
+                        }
+
+                        if (this.selectedPlates.includes(index)) {
+                            if (this.selectedPlates[0] === index) {
+                                plateEl.classList.add("selected-first");
+                            } else {
+                                plateEl.classList.add("selected-second");
+                            }
+                        }
+
+                        plateEl.innerHTML = `
+                        <div class="plate-base">
+                            <span class="plate-number">${index + 1}번</span>
+                            <span class="token-count">${plate.tokens}개</span>
+                        </div>
+                        <div class="plate-cover ${!plate.covered ? "open" : ""}">
+                            <span class="cover-number">${index + 1}</span>
+                        </div>
+                    `;
+
+                        plateEl.addEventListener("click", () =>
+                            this.onPlateClick(index),
+                        );
+                        container.appendChild(plateEl);
+                    });
+                }
+
+                onPlateClick(index) {
+                    // AI 턴이면 플레이어 클릭 무시
+                    if (this.isAiTurn()) {
+                        return;
+                    }
+
+                    if (this.phase === "placement") {
+                        this.handlePlacementClick(index);
+                    } else if (this.phase === "matching") {
+                        this.handleMatchingClick(index);
+                    } else if (this.phase === "add-token") {
+                        this.handleAddTokenClick(index);
+                    }
+                }
+
+                handlePlacementClick(index) {
+                    // Race condition 방지: 이미 처리 중이면 무시
+                    if (this.isProcessing) {
+                        return;
+                    }
+
+                    if (this.plates[index].hasTokens) {
+                        this.showMessage(
+                            "이미 토큰이 있는 접시입니다!",
+                            "fail",
+                        );
+                        return;
+                    }
+
+                    // 처리 시작
+                    this.isProcessing = true;
+
+                    this.plates[index].tokens = this.placementRound;
+                    this.plates[index].hasTokens = true;
+                    this.plates[index].covered = true;
+
+                    // AI가 상대방 배치를 기억하려고 시도
+                    if (this.gameMode === "ai" && !this.isAiTurn()) {
+                        this.aiTryRemember(index, this.placementRound);
+                    }
+
+                    // Show tokens briefly then cover
+                    this.plates[index].covered = false;
+                    this.renderPlates();
+
+                    setTimeout(() => {
+                        this.plates[index].covered = true;
+                        this.renderPlates();
+                        this.nextPlacementTurn();
+                        // 처리 완료
+                        this.isProcessing = false;
+                    }, 1500);
+                }
+
+                nextPlacementTurn() {
+                    // Switch player
+                    this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+
+                    // If we're back to player 1, increment round
+                    if (this.currentPlayer === 1) {
+                        this.placementRound++;
+                    }
+
+                    // Check if placement phase is complete
+                    if (this.placementRound > this.maxPlacementRound) {
+                        this.startMatchingPhase();
+                        return;
+                    }
+
+                    this.updateUI();
+
+                    // AI 턴이면 AI 행동 예약
+                    if (this.isAiTurn()) {
+                        this.scheduleAiTurn();
+                    }
+                }
+
+                startMatchingPhase() {
+                    this.phase = "matching";
+                    this.currentPlayer = 1;
+                    // 게임 토큰 수: 배치 라운드 수 + 1 (최소 5개)
+                    const gameTokens = Math.max(5, this.maxPlacementRound + 1);
+                    this.playerTokens = { 1: gameTokens, 2: gameTokens };
+                    this.selectedPlates = [];
+
+                    this.updateUI();
+                    this.renderPlates();
+
+                    // AI 턴이면 AI 행동, 아니면 타이머 시작
+                    if (this.isAiTurn()) {
+                        this.scheduleAiTurn();
+                    } else {
+                        this.startTimer();
+                    }
+                }
+
+                startTimer() {
+                    this.timeLeft = 60;
+                    document.getElementById("timer").style.display = "block";
+                    this.updateTimerDisplay();
+
+                    this.timer = setInterval(() => {
+                        this.timeLeft--;
+                        this.updateTimerDisplay();
+
+                        if (this.timeLeft <= 0) {
+                            this.handleTimeout();
+                        }
+                    }, 1000);
+                }
+
+                stopTimer() {
+                    if (this.timer) {
+                        clearInterval(this.timer);
+                        this.timer = null;
+                    }
+                }
+
+                updateTimerDisplay() {
+                    const timerEl = document.getElementById("timer");
+                    timerEl.textContent = this.timeLeft;
+
+                    if (this.timeLeft <= 10) {
+                        timerEl.classList.add("warning");
+                    } else {
+                        timerEl.classList.remove("warning");
+                    }
+                }
+
+                handleTimeout() {
+                    this.stopTimer();
+                    this.playerTokens[this.currentPlayer] += 2;
+                    this.showMessage(
+                        `시간 초과! 플레이어 ${this.currentPlayer}에게 페널티 토큰 2개가 추가되었습니다.`,
+                        "fail",
+                    );
+
+                    this.selectedPlates = [];
+                    this.renderPlates();
+
+                    setTimeout(() => {
+                        this.nextMatchingTurn();
+                    }, 2000);
+                }
+
+                handleMatchingClick(index) {
+                    // Can't select same plate twice
+                    if (this.selectedPlates.includes(index)) {
+                        this.selectedPlates = this.selectedPlates.filter(
+                            (i) => i !== index,
+                        );
+                        this.renderPlates();
+                        this.updateConfirmButton();
+                        return;
+                    }
+
+                    // Can only select 2 plates
+                    if (this.selectedPlates.length >= 2) {
+                        return;
+                    }
+
+                    this.selectedPlates.push(index);
+                    this.renderPlates();
+                    this.updateConfirmButton();
+                }
+
+                updateConfirmButton() {
+                    const floatingBtn =
+                        document.getElementById("floating-confirm");
+                    if (
+                        this.phase === "matching" &&
+                        this.selectedPlates.length === 2
+                    ) {
+                        floatingBtn.classList.add("show");
+                    } else {
+                        floatingBtn.classList.remove("show");
+                    }
+                }
+
+                confirmSelection() {
+                    if (this.selectedPlates.length !== 2) return;
+
+                    this.stopTimer();
+
+                    const [idx1, idx2] = this.selectedPlates;
+                    const plate1 = this.plates[idx1];
+                    const plate2 = this.plates[idx2];
+
+                    // Open covers
+                    plate1.covered = false;
+                    plate2.covered = false;
+                    this.renderPlates();
+
+                    // AI가 공개된 접시를 기억하려고 시도 (상대방 턴일 때)
+                    if (this.gameMode === "ai" && !this.isAiTurn()) {
+                        this.aiTryRemember(idx1, plate1.tokens);
+                        this.aiTryRemember(idx2, plate2.tokens);
+                    }
+
+                    setTimeout(() => {
+                        if (plate1.tokens === plate2.tokens) {
+                            this.handleMatchSuccess(idx1, idx2);
+                        } else {
+                            this.handleMatchFail(idx1, idx2);
+                        }
+                    }, 2000);
+                }
+
+                handleMatchSuccess(idx1, idx2) {
+                    this.showMessage(
+                        `매치 성공! 두 접시 모두 ${this.plates[idx1].tokens}개의 토큰이 있습니다!`,
+                        "success",
+                    );
+
+                    this.matchedPlateIndices = [idx1, idx2];
+                    this.phase = "add-token";
+
+                    document
+                        .getElementById("add-token-selection")
+                        .classList.add("show");
+                    document
+                        .getElementById("floating-confirm")
+                        .classList.remove("show");
+
+                    this.showMessage(
+                        `매치 성공! ${idx1 + 1}번 또는 ${idx2 + 1}번 접시를 클릭하여 토큰을 추가하세요.`,
+                        "success",
+                    );
+
+                    // AI 턴이면 AI가 토큰 추가
+                    if (this.isAiTurn()) {
+                        this.scheduleAiTurn();
+                    }
+                }
+
+                handleAddTokenClick(index) {
+                    if (!this.matchedPlateIndices.includes(index)) {
+                        this.showMessage(
+                            "매치된 접시 중 하나를 선택하세요!",
+                            "fail",
+                        );
+                        return;
+                    }
+
+                    this.plates[index].tokens += 1;
+                    this.playerTokens[this.currentPlayer] -= 1;
+
+                    // AI 메모리 업데이트
+                    if (this.gameMode === "ai") {
+                        this.aiUpdateMemory(index, this.plates[index].tokens);
+                    }
+
+                    document
+                        .getElementById("add-token-selection")
+                        .classList.remove("show");
+                    this.matchedPlateIndices = [];
+
+                    // Cover plates again
+                    this.plates.forEach((p) => (p.covered = true));
+                    this.selectedPlates = [];
+                    this.phase = "matching";
+                    this.renderPlates();
+
+                    // 토큰 추가한 접시에 깜빡임 효과
+                    const plateEl = document.querySelector(
+                        `.plate[data-index="${index}"]`,
+                    );
+                    if (plateEl) {
+                        plateEl.classList.add("token-added");
+                    }
+
+                    // Check win condition
+                    if (this.checkWinCondition()) {
+                        return;
+                    }
+
+                    setTimeout(() => {
+                        if (plateEl) {
+                            plateEl.classList.remove("token-added");
+                        }
+                        this.nextMatchingTurn();
+                    }, 1000);
+                }
+
+                handleMatchFail(idx1, idx2) {
+                    this.playerTokens[this.currentPlayer] += 1;
+                    this.showMessage(
+                        `매치 실패! ${idx1 + 1}번: ${this.plates[idx1].tokens}개, ${idx2 + 1}번: ${this.plates[idx2].tokens}개. 페널티 토큰 +1`,
+                        "fail",
+                    );
+
+                    setTimeout(() => {
+                        // Cover plates again
+                        this.plates[idx1].covered = true;
+                        this.plates[idx2].covered = true;
+                        this.selectedPlates = [];
+                        this.renderPlates();
+
+                        this.nextMatchingTurn();
+                    }, 2000);
+                }
+
+                nextMatchingTurn() {
+                    // Check if matching is still possible
+                    if (!this.hasMatchingPairs()) {
+                        this.endGameNoMatches();
+                        return;
+                    }
+
+                    this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+                    this.selectedPlates = [];
+                    this.updateUI();
+                    this.renderPlates();
+
+                    // AI 턴이면 AI 행동, 아니면 타이머 시작
+                    if (this.isAiTurn()) {
+                        this.scheduleAiTurn();
+                    } else {
+                        this.startTimer();
+                    }
+                }
+
+                hasMatchingPairs() {
+                    const tokenCounts = {};
+                    this.plates.forEach((p) => {
+                        tokenCounts[p.tokens] =
+                            (tokenCounts[p.tokens] || 0) + 1;
+                    });
+
+                    return Object.values(tokenCounts).some(
+                        (count) => count >= 2,
+                    );
+                }
+
+                checkWinCondition() {
+                    if (this.playerTokens[this.currentPlayer] <= 0) {
+                        this.endGame(this.currentPlayer, "tokens");
+                        return true;
+                    }
+                    return false;
+                }
+
+                getPlayerName(playerNum) {
+                    if (this.gameMode === "ai") {
+                        return playerNum === this.aiPlayer ? "AI" : "플레이어";
+                    }
+                    return `플레이어 ${playerNum}`;
+                }
+
+                endGame(winner, reason) {
+                    this.stopTimer();
+                    this.phase = "end";
+
+                    const modal = document.getElementById("result-modal");
+                    const title = document.getElementById("result-title");
+                    const announcement = document.getElementById(
+                        "winner-announcement",
+                    );
+                    const description =
+                        document.getElementById("result-description");
+
+                    const winnerName = this.getPlayerName(winner);
+                    title.textContent = "게임 종료!";
+                    announcement.textContent = `${winnerName} 승리!`;
+
+                    if (reason === "tokens") {
+                        description.textContent = `${winnerName}이(가) 모든 토큰을 소진했습니다!`;
+                    } else {
+                        description.textContent = `더 이상 매칭할 수 있는 쌍이 없습니다. 토큰이 적은 ${winnerName}이(가) 승리합니다!`;
+                    }
+
+                    modal.classList.add("show");
+                }
+
+                endGameNoMatches() {
+                    this.stopTimer();
+
+                    const winner =
+                        this.playerTokens[1] < this.playerTokens[2]
+                            ? 1
+                            : this.playerTokens[2] < this.playerTokens[1]
+                              ? 2
+                              : 0;
+
+                    const modal = document.getElementById("result-modal");
+                    const title = document.getElementById("result-title");
+                    const announcement = document.getElementById(
+                        "winner-announcement",
+                    );
+                    const description =
+                        document.getElementById("result-description");
+
+                    title.textContent = "게임 종료!";
+
+                    if (winner === 0) {
+                        announcement.textContent = "무승부!";
+                        description.textContent = `더 이상 매칭 가능한 쌍이 없습니다. 둘 다 ${this.playerTokens[1]}개의 토큰을 가지고 있습니다.`;
+                    } else {
+                        const winnerName = this.getPlayerName(winner);
+                        const p1Name = this.getPlayerName(1);
+                        const p2Name = this.getPlayerName(2);
+                        announcement.textContent = `${winnerName} 승리!`;
+                        description.textContent = `더 이상 매칭 가능한 쌍이 없습니다.\n${p1Name}: ${this.playerTokens[1]}개, ${p2Name}: ${this.playerTokens[2]}개`;
+                    }
+
+                    modal.classList.add("show");
+                }
+
+                updateUI() {
+                    // Update player info
+                    const p1Info = document.getElementById("player1-info");
+                    const p2Info = document.getElementById("player2-info");
+
+                    p1Info.classList.toggle("active", this.currentPlayer === 1);
+                    p2Info.classList.toggle("active", this.currentPlayer === 2);
+
+                    // Update tokens display
+                    if (this.phase === "placement") {
+                        document.getElementById("player1-tokens").textContent =
+                            "배치 중";
+                        document.getElementById("player2-tokens").textContent =
+                            "배치 중";
+                    } else {
+                        document.getElementById("player1-tokens").textContent =
+                            `${this.playerTokens[1]}개`;
+                        document.getElementById("player2-tokens").textContent =
+                            `${this.playerTokens[2]}개`;
+                    }
+
+                    // Update phase info
+                    const phaseTitle = document.getElementById("phase-title");
+                    const phaseDesc =
+                        document.getElementById("phase-description");
+                    const placementInfo =
+                        document.getElementById("placement-info");
+                    const currentPlacement =
+                        document.getElementById("current-placement");
+
+                    if (this.phase === "placement") {
+                        phaseTitle.textContent = "배치 단계";
+                        phaseDesc.textContent = `플레이어 ${this.currentPlayer}의 차례`;
+                        placementInfo.style.display = "block";
+                        currentPlacement.textContent = `${this.placementRound}개의 토큰을 배치하세요 (라운드 ${this.placementRound}/${this.maxPlacementRound})`;
+                        document.getElementById("timer").style.display = "none";
+                    } else if (
+                        this.phase === "matching" ||
+                        this.phase === "add-token"
+                    ) {
+                        phaseTitle.textContent = "매칭 단계";
+                        phaseDesc.textContent = `플레이어 ${this.currentPlayer}의 차례`;
+                        placementInfo.style.display = "none";
+                        document.getElementById("timer").style.display =
+                            "block";
+                    }
+
+                    this.updateConfirmButton();
+                }
+
+                showMessage(text, type) {
+                    const area = document.getElementById("message-area");
+                    area.innerHTML = `<div class="message ${type}">${text}</div>`;
+
+                    setTimeout(() => {
+                        area.innerHTML = "";
+                    }, 3000);
+                }
+
+                resetGame() {
+                    document
+                        .getElementById("result-modal")
+                        .classList.remove("show");
+                    document.getElementById("start-screen").style.display =
+                        "block";
+                    document.getElementById("game-screen").style.display =
+                        "none";
+                    this.stopTimer();
+                }
+
+                // 튜토리얼 메서드
+                showTutorial() {
+                    this.tutorialStep = 1;
+                    this.updateTutorialUI();
+                    document
+                        .getElementById("tutorial-modal")
+                        .classList.add("show");
+                }
+
+                closeTutorial() {
+                    document
+                        .getElementById("tutorial-modal")
+                        .classList.remove("show");
+                }
+
+                tutorialNext() {
+                    if (this.tutorialStep < 5) {
+                        this.tutorialStep++;
+                        this.updateTutorialUI();
+                    } else {
+                        this.closeTutorial();
+                    }
+                }
+
+                tutorialPrev() {
+                    if (this.tutorialStep > 1) {
+                        this.tutorialStep--;
+                        this.updateTutorialUI();
+                    }
+                }
+
+                updateTutorialUI() {
+                    // 스텝 표시 업데이트
+                    document
+                        .querySelectorAll(".tutorial-step")
+                        .forEach((step) => {
+                            step.classList.remove("active");
+                        });
+                    document
+                        .querySelector(
+                            `.tutorial-step[data-step="${this.tutorialStep}"]`,
+                        )
+                        .classList.add("active");
+
+                    // 진행 점 업데이트
+                    document
+                        .querySelectorAll(".tutorial-dot")
+                        .forEach((dot, index) => {
+                            dot.classList.remove("active", "completed");
+                            if (index + 1 === this.tutorialStep) {
+                                dot.classList.add("active");
+                            } else if (index + 1 < this.tutorialStep) {
+                                dot.classList.add("completed");
+                            }
+                        });
+
+                    // 버튼 업데이트
+                    const prevBtn = document.getElementById("tutorial-prev");
+                    const nextBtn = document.getElementById("tutorial-next");
+
+                    prevBtn.style.display =
+                        this.tutorialStep > 1 ? "inline-block" : "none";
+                    nextBtn.textContent =
+                        this.tutorialStep < 5 ? "다음" : "시작하기";
+                }
+            }
+
+            const game = new MemoryFeast();
+            window.game = game;
+        </script>
+    </body>
+</html>
