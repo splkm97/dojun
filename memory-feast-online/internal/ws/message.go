@@ -174,3 +174,24 @@ func NewErrorMessage(code, message string) (*Message, error) {
 		Message: message,
 	})
 }
+
+// ValidMessagesForState maps ClientState to allowed message types
+// ClientState is defined in hub.go
+var ValidMessagesForLobby = []MessageType{
+	MsgJoinQueue,
+	MsgCreateRoom,
+	MsgJoinRoom,
+	MsgReconnect,
+}
+
+var ValidMessagesForWaiting = []MessageType{
+	MsgLeaveRoom,
+}
+
+var ValidMessagesForInGame = []MessageType{
+	MsgPlaceToken,
+	MsgSelectPlate,
+	MsgConfirmMatch,
+	MsgAddToken,
+	MsgLeaveRoom,
+}

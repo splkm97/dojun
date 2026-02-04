@@ -86,15 +86,26 @@ func (h *Hub) ClientCount() int {
 	return len(h.clients)
 }
 
+// ClientState represents the state of a WebSocket client
+type ClientState string
+
+const (
+	ClientLobby   ClientState = "lobby"
+	ClientWaiting ClientState = "waiting" // In queue or waiting room
+	ClientInGame  ClientState = "in_game"
+)
+
 // Client represents a connected WebSocket client
 type Client struct {
 	Hub       *Hub
 	Conn      *websocket.Conn
 	SessionID string
 	Send      chan []byte
+	State     ClientState
 
 	closeMu sync.Mutex
 	writeMu sync.Mutex // Mutex for serializing writes
+	stateMu sync.RWMutex
 	closed  bool
 }
 
@@ -105,7 +116,29 @@ func NewClient(hub *Hub, conn *websocket.Conn, sessionID string) *Client {
 		Conn:      conn,
 		SessionID: sessionID,
 		Send:      make(chan []byte, 256),
+		State:     ClientLobby, // Start in lobby state
 	}
+}
+
+// SetState sets the client's state (thread-safe)
+func (c *Client) SetState(state ClientState) {
+	c.stateMu.Lock()
+	defer c.stateMu.Unlock()
+	if c.State != state {
+		sessionPrefix := c.SessionID
+		if len(sessionPrefix) > 8 {
+			sessionPrefix = sessionPrefix[:8]
+		}
+		log.Printf("Client %s: state %s → %s", sessionPrefix, c.State, state)
+	}
+	c.State = state
+}
+
+// GetState returns the client's current state (thread-safe)
+func (c *Client) GetState() ClientState {
+	c.stateMu.RLock()
+	defer c.stateMu.RUnlock()
+	return c.State
 }
 
 // Close closes the client connection

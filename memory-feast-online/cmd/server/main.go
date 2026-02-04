@@ -138,6 +138,13 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleMessage(client *ws.Client, msg *ws.Message) {
+	// Validate message against client state
+	if !s.isMessageAllowedForState(client.GetState(), msg.Type) {
+		s.sendError(client, "invalid_state",
+			"Message "+string(msg.Type)+" not allowed in state "+string(client.GetState()))
+		return
+	}
+
 	switch msg.Type {
 	case ws.MsgJoinQueue:
 		s.handleJoinQueue(client, msg)
@@ -160,6 +167,29 @@ func (s *Server) handleMessage(client *ws.Client, msg *ws.Message) {
 	default:
 		log.Printf("Unknown message type: %s", msg.Type)
 	}
+}
+
+// isMessageAllowedForState checks if a message type is allowed for the client's state
+func (s *Server) isMessageAllowedForState(state ws.ClientState, msgType ws.MessageType) bool {
+	var allowedMsgs []ws.MessageType
+
+	switch state {
+	case ws.ClientLobby:
+		allowedMsgs = ws.ValidMessagesForLobby
+	case ws.ClientWaiting:
+		allowedMsgs = ws.ValidMessagesForWaiting
+	case ws.ClientInGame:
+		allowedMsgs = ws.ValidMessagesForInGame
+	default:
+		return false
+	}
+
+	for _, allowed := range allowedMsgs {
+		if allowed == msgType {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Server) handleJoinQueue(client *ws.Client, msg *ws.Message) {
@@ -192,6 +222,7 @@ func (s *Server) handleJoinQueue(client *ws.Client, msg *ws.Message) {
 
 				c := s.hub.GetClient(p.SessionID)
 				if c != nil {
+					c.SetState(ws.ClientInGame) // Transition to InGame
 					c.SendMessage(matchedMsg)
 				}
 			}
@@ -200,7 +231,8 @@ func (s *Server) handleJoinQueue(client *ws.Client, msg *ws.Message) {
 		// Send initial game state
 		room.BroadcastState()
 	} else {
-		// Added to queue
+		// Added to queue - transition to Waiting
+		client.SetState(ws.ClientWaiting)
 		queueMsg, _ := ws.NewMessage(ws.MsgQueueJoined, ws.QueueJoinedPayload{
 			Position: position,
 		})
@@ -237,6 +269,9 @@ func (s *Server) handleCreateRoom(client *ws.Client, msg *ws.Message) {
 	s.roomsMu.Lock()
 	s.rooms[room.ID] = room
 	s.roomsMu.Unlock()
+
+	// Transition to Waiting state
+	client.SetState(ws.ClientWaiting)
 
 	// Send room created message
 	createdMsg, _ := ws.NewMessage(ws.MsgRoomCreated, ws.RoomCreatedPayload{
@@ -289,7 +324,10 @@ func (s *Server) handleJoinRoom(client *ws.Client, msg *ws.Message) {
 	if room.IsFull() {
 		room.StartGame()
 
-		// Notify first player
+		// Transition both players to InGame state
+		client.SetState(ws.ClientInGame)
+
+		// Notify first player and transition them
 		for i := 0; i < 2; i++ {
 			p := room.GetPlayer(i)
 			if p != nil && i != playerIndex {
@@ -300,12 +338,16 @@ func (s *Server) handleJoinRoom(client *ws.Client, msg *ws.Message) {
 				})
 				c := s.hub.GetClient(p.SessionID)
 				if c != nil {
+					c.SetState(ws.ClientInGame)
 					c.SendMessage(matchedMsg)
 				}
 			}
 		}
 
 		room.BroadcastState()
+	} else {
+		// Room not full yet, waiting for opponent
+		client.SetState(ws.ClientWaiting)
 	}
 }
 
@@ -457,6 +499,12 @@ func (s *Server) handleReconnect(client *ws.Client, msg *ws.Message) {
 		return
 	}
 
+	// Check if game is already finished
+	if room.State.Phase == game.PhaseFinished {
+		s.sendError(client, "game_finished", "Game has already ended")
+		return
+	}
+
 	player := room.GetPlayer(playerIndex)
 	if player == nil {
 		s.sendError(client, "player_not_found", "Player not found")
@@ -472,6 +520,9 @@ func (s *Server) handleReconnect(client *ws.Client, msg *ws.Message) {
 	// Update connection
 	player.SetConnection(client.Conn)
 
+	// Transition to InGame state
+	client.SetState(ws.ClientInGame)
+
 	// Send reconnected message
 	reconnectedMsg, _ := ws.NewMessage(ws.MsgReconnected, ws.ReconnectedPayload{
 		PlayerIndex: playerIndex,
@@ -485,6 +536,8 @@ func (s *Server) handleReconnect(client *ws.Client, msg *ws.Message) {
 func (s *Server) handleLeaveRoom(client *ws.Client, msg *ws.Message) {
 	room, playerIndex := s.findPlayerRoom(client.SessionID)
 	if room == nil {
+		// If not in a room, just reset to lobby
+		client.SetState(ws.ClientLobby)
 		return
 	}
 
@@ -492,6 +545,9 @@ func (s *Server) handleLeaveRoom(client *ws.Client, msg *ws.Message) {
 	if player != nil {
 		player.ClearConnection()
 	}
+
+	// Transition leaving player to Lobby
+	client.SetState(ws.ClientLobby)
 
 	// Notify opponent
 	opponentIndex := 1 - playerIndex
@@ -561,6 +617,17 @@ func (s *Server) broadcastStateWithMessage(room *game.Room, state ws.GameStatePa
 	room.BroadcastMessage(msg)
 }
 
+// resetPlayersToLobby transitions all players in a room back to Lobby state
+func (s *Server) resetPlayersToLobby(room *game.Room) {
+	for i := 0; i < 2; i++ {
+		if p := room.GetPlayer(i); p != nil {
+			if c := s.hub.GetClient(p.SessionID); c != nil {
+				c.SetState(ws.ClientLobby)
+			}
+		}
+	}
+}
+
 func (s *Server) endGame(room *game.Room, winner int, reason string) {
 	room.StopTimer()
 	room.SetFinished()
@@ -585,6 +652,8 @@ func (s *Server) endGame(room *game.Room, winner int, reason string) {
 		FinalTokens: finalTokens,
 	})
 	room.BroadcastMessage(endMsg)
+
+	s.resetPlayersToLobby(room)
 }
 
 func (s *Server) endGameNoMatches(room *game.Room) {
@@ -619,6 +688,8 @@ func (s *Server) endGameNoMatches(room *game.Room) {
 		FinalTokens: finalTokens,
 	})
 	room.BroadcastMessage(endMsg)
+
+	s.resetPlayersToLobby(room)
 }
 
 func (s *Server) sendError(client *ws.Client, code, message string) {
