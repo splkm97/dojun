@@ -302,19 +302,19 @@ test.describe('State Machine - Connection State', () => {
   test('should notify opponent on explicit leave_room', async ({ browser }) => {
     const { page1, page2, context1, context2 } = await setupTwoPlayerGame(browser);
 
-    // Set up listener for player_left message on page1
-    const playerLeftReceived = page1.evaluate(() => {
-      return new Promise<boolean>((resolve) => {
+    // Set up listener for game_end message on page1 (forfeit when opponent leaves)
+    const gameEndReceived = page1.evaluate(() => {
+      return new Promise<{ received: boolean; reason: string }>((resolve) => {
         const game = (window as any).game;
         const originalOnMessage = game.ws.onmessage;
         game.ws.onmessage = (event: MessageEvent) => {
           const msg = JSON.parse(event.data);
-          if (msg.type === 'player_left') {
-            resolve(true);
+          if (msg.type === 'game_end') {
+            resolve({ received: true, reason: msg.payload.reason });
           }
           originalOnMessage?.call(game.ws, event);
         };
-        setTimeout(() => resolve(false), 5000);
+        setTimeout(() => resolve({ received: false, reason: '' }), 5000);
       });
     });
 
@@ -324,9 +324,10 @@ test.describe('State Machine - Connection State', () => {
       game.send({ type: 'leave_room', payload: {} });
     });
 
-    // Player 1 should receive player_left notification
-    const received = await playerLeftReceived;
-    expect(received).toBe(true);
+    // Player 1 should receive game_end with forfeit reason
+    const result = await gameEndReceived;
+    expect(result.received).toBe(true);
+    expect(result.reason).toBe('forfeit');
 
     await context1.close();
     await context2.close();

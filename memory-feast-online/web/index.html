@@ -295,6 +295,31 @@
                 transform: none;
             }
 
+            .btn-danger {
+                background: linear-gradient(145deg, #e74c3c, #c0392b);
+                color: #fff;
+            }
+
+            .btn-danger:hover {
+                background: linear-gradient(145deg, #c0392b, #e74c3c);
+            }
+
+            .leave-game-btn {
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                font-size: 0.9rem;
+                padding: 8px 16px;
+                z-index: 100;
+            }
+
+            .modal-buttons {
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+                margin-top: 20px;
+            }
+
             .message {
                 text-align: center;
                 padding: 10px;
@@ -788,6 +813,22 @@
                 <div class="add-token-selection" id="add-token-selection">
                     <p>토큰을 추가할 접시를 선택하세요:</p>
                 </div>
+
+                <button class="btn btn-danger leave-game-btn" onclick="game.showLeaveConfirm()">
+                    나가기
+                </button>
+            </div>
+
+            <!-- Leave Confirmation Modal -->
+            <div class="modal" id="leave-confirm-modal">
+                <div class="modal-content">
+                    <h2>게임을 나가시겠습니까?</h2>
+                    <p>나가면 상대방이 승리하게 됩니다.</p>
+                    <div class="modal-buttons">
+                        <button class="btn btn-secondary" onclick="game.hideLeaveConfirm()">취소</button>
+                        <button class="btn btn-danger" onclick="game.confirmLeave()">나가기</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Floating Confirm Button -->
@@ -923,6 +964,10 @@
                 }
 
                 handleError(payload) {
+                    // Ignore expected errors during reconnect attempt
+                    if (payload.code === 'no_active_game') {
+                        return; // Normal when no game to reconnect to
+                    }
                     alert(`오류: ${payload.message}`);
                     if (payload.code === 'room_not_found' || payload.code === 'room_full') {
                         this.showScreen('lobby');
@@ -987,7 +1032,7 @@
                         const reasons = {
                             tokens: '모든 토큰을 소진했습니다!',
                             no_matches: '더 이상 매칭 가능한 쌍이 없습니다.',
-                            forfeit: '상대방이 연결을 포기했습니다.'
+                            forfeit: '상대방이 게임을 나갔습니다.'
                         };
                         description.textContent = reasons[payload.reason] || '';
                     }
@@ -1259,6 +1304,23 @@
                     this.roomId = null;
                     this.roomCode = null;
                     this.gameState = null;
+                }
+
+                showLeaveConfirm() {
+                    document.getElementById('leave-confirm-modal').classList.add('show');
+                }
+
+                hideLeaveConfirm() {
+                    document.getElementById('leave-confirm-modal').classList.remove('show');
+                }
+
+                confirmLeave() {
+                    this.hideLeaveConfirm();
+                    this.send({
+                        type: 'leave_room',
+                        payload: {}
+                    });
+                    // Server will send game_end with forfeit, which triggers result modal
                 }
 
                 showScreen(screen) {

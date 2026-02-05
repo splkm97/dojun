@@ -472,18 +472,26 @@ func (s *Server) handleAddToken(client *ws.Client, msg *ws.Message) {
 		return
 	}
 
+	// Broadcast state with lastActionPlate for animation
+	room.BroadcastState()
+
 	if playerWon {
-		s.endGame(room, playerIndex, "tokens")
+		// Delay to show animation before ending game
+		time.AfterFunc(1500*time.Millisecond, func() {
+			s.endGame(room, playerIndex, "tokens")
+		})
 		return
 	}
 
-	// Continue to next turn
-	if room.AdvanceMatching() {
-		s.startMatchingTimer(room)
-		room.BroadcastState()
-	} else {
-		s.endGameNoMatches(room)
-	}
+	// Delay to show animation, then continue to next turn
+	time.AfterFunc(1500*time.Millisecond, func() {
+		if room.AdvanceMatching() {
+			s.startMatchingTimer(room)
+			room.BroadcastState()
+		} else {
+			s.endGameNoMatches(room)
+		}
+	})
 }
 
 func (s *Server) handleReconnect(client *ws.Client, msg *ws.Message) {
@@ -549,27 +557,9 @@ func (s *Server) handleLeaveRoom(client *ws.Client, msg *ws.Message) {
 	// Transition leaving player to Lobby
 	client.SetState(ws.ClientLobby)
 
-	// Notify opponent
+	// Explicit leave = immediate forfeit, opponent wins
 	opponentIndex := 1 - playerIndex
-	opponent := room.GetPlayer(opponentIndex)
-	if opponent != nil && opponent.IsConnected() {
-		leftMsg, _ := ws.NewMessage(ws.MsgPlayerLeft, ws.PlayerLeftPayload{
-			PlayerIndex: playerIndex,
-			GracePeriod: int(game.ReconnectGracePeriod.Seconds()),
-		})
-		c := s.hub.GetClient(opponent.SessionID)
-		if c != nil {
-			c.SendMessage(leftMsg)
-		}
-
-		// Start forfeit timer
-		time.AfterFunc(game.ReconnectGracePeriod, func() {
-			p := room.GetPlayer(playerIndex)
-			if p != nil && !p.IsConnected() {
-				s.endGame(room, opponentIndex, "forfeit")
-			}
-		})
-	}
+	s.endGame(room, opponentIndex, "forfeit")
 }
 
 func (s *Server) findPlayerRoom(sessionID string) (*game.Room, int) {
