@@ -27,10 +27,12 @@ type Room struct {
 	PlateCount int
 	Hub        *ws.Hub // Hub for sending messages
 
-	mu          sync.RWMutex
-	timer       *time.Timer
-	timerTicker *time.Ticker
-	timerDone   chan struct{}
+	mu               sync.RWMutex
+	timer            *time.Timer
+	timerTicker      *time.Ticker
+	timerDone        chan struct{}
+	placementPending bool // Lock to prevent multiple placements per turn
+	confirmPending   bool // Lock to block selections during confirm reveal
 
 	// Callbacks
 	onEmpty func(roomID string)
@@ -170,8 +172,15 @@ func (r *Room) HandlePlaceToken(playerIndex, plateIndex int) bool {
 	if r.State.CurrentTurn != playerIndex {
 		return false
 	}
+	if r.placementPending {
+		return false // Block multiple placements per turn
+	}
 
-	return r.State.PlaceToken(plateIndex)
+	if r.State.PlaceToken(plateIndex) {
+		r.placementPending = true // Lock until turn advances
+		return true
+	}
+	return false
 }
 
 // AdvancePlacement moves to next placement turn
@@ -179,6 +188,7 @@ func (r *Room) HandlePlaceToken(playerIndex, plateIndex int) bool {
 func (r *Room) AdvancePlacement() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.placementPending = false // Reset lock for next turn
 	return r.State.NextPlacementTurn()
 }
 
@@ -192,6 +202,9 @@ func (r *Room) HandleSelectPlate(playerIndex, plateIndex int) bool {
 	}
 	if r.State.CurrentTurn != playerIndex {
 		return false
+	}
+	if r.confirmPending {
+		return false // Block selections during confirm reveal
 	}
 
 	return r.State.SelectPlate(plateIndex)
@@ -213,6 +226,7 @@ func (r *Room) HandleConfirmMatch(playerIndex int) (bool, bool, int, int) {
 		return false, false, 0, 0
 	}
 
+	r.confirmPending = true // Lock selections during reveal
 	matched, t1, t2 := r.State.ConfirmMatch()
 	return true, matched, t1, t2
 }
@@ -221,6 +235,7 @@ func (r *Room) HandleConfirmMatch(playerIndex int) (bool, bool, int, int) {
 func (r *Room) SetAddTokenPhase() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.confirmPending = false // Reset lock after transition
 	r.State.SetAddTokenPhase()
 }
 
@@ -271,6 +286,8 @@ func (r *Room) HandleTimeout(playerIndex int) {
 func (r *Room) AdvanceMatching() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	r.confirmPending = false // Reset lock for next turn
 
 	if !r.State.HasMatchingPairs() {
 		return false

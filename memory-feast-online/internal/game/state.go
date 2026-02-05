@@ -73,7 +73,7 @@ func (gs *GameState) PlaceToken(index int) bool {
 
 	gs.Plates[index].Tokens = gs.PlacementRound
 	gs.Plates[index].HasTokens = true
-	gs.Plates[index].Covered = true
+	gs.Plates[index].Covered = false // Open briefly to show token count
 	gs.LastActionPlate = &index
 
 	return true

@@ -821,6 +821,7 @@
                     this.roomCode = null;
                     this.playerIndex = -1;
                     this.gameState = null;
+                    this.placementPending = false; // Lock to prevent multiple clicks during placement
 
                     this.connect();
                 }
@@ -964,6 +965,7 @@
 
                 handleGameState(payload) {
                     this.gameState = payload;
+                    this.placementPending = false; // Reset click lock on state update
                     this.showScreen('game');
                     this.renderGameState();
                 }
@@ -1152,6 +1154,8 @@
 
                     if (state.phase === 'placement') {
                         if (state.plates[index].hasTokens) return;
+                        if (this.placementPending) return; // Block multiple clicks
+                        this.placementPending = true; // Lock until state update
                         this.send({
                             type: 'place_token',
                             payload: { index }
