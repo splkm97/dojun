@@ -20,14 +20,15 @@ type Plate struct {
 
 // GameState holds all game-related state
 type GameState struct {
-	Phase          Phase
-	CurrentTurn    int // 0 or 1 (player index)
-	PlacementRound int
-	MaxRound       int
-	TimeLeft       int
-	Plates         []Plate
-	SelectedPlates []int
-	MatchedPlates  []int
+	Phase           Phase
+	CurrentTurn     int // 0 or 1 (player index)
+	PlacementRound  int
+	MaxRound        int
+	TimeLeft        int
+	Plates          []Plate
+	SelectedPlates  []int
+	MatchedPlates   []int
+	LastActionPlate *int // Plate index of last placement/addition for animation
 }
 
 // NewGameState creates a new game state with the given plate count
@@ -73,6 +74,7 @@ func (gs *GameState) PlaceToken(index int) bool {
 	gs.Plates[index].Tokens = gs.PlacementRound
 	gs.Plates[index].HasTokens = true
 	gs.Plates[index].Covered = true
+	gs.LastActionPlate = &index
 
 	return true
 }
@@ -174,6 +176,7 @@ func (gs *GameState) AddToken(index int) bool {
 	}
 
 	gs.Plates[index].Tokens++
+	gs.LastActionPlate = &index
 	return true
 }
 
@@ -185,6 +188,7 @@ func (gs *GameState) ResetForNextTurn() {
 	}
 	gs.SelectedPlates = []int{}
 	gs.MatchedPlates = []int{}
+	gs.LastActionPlate = nil
 	gs.Phase = PhaseMatching
 	gs.TimeLeft = 60
 }

@@ -115,6 +115,7 @@ type GameStatePayload struct {
 	SelectedPlates         []int        `json:"selectedPlates"`
 	OpponentSelectedPlates []int        `json:"opponentSelectedPlates,omitempty"` // Opponent's selections visible to this player
 	MatchedPlates          []int        `json:"matchedPlates,omitempty"`
+	LastActionPlate        *int         `json:"lastActionPlate,omitempty"` // Plate index of last placement/addition for animation
 	Message                string       `json:"message,omitempty"`
 	MessageType            string       `json:"messageType,omitempty"` // success, fail, info
 }

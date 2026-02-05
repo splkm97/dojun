@@ -214,6 +214,31 @@
                 box-shadow: 0 0 20px rgba(142, 68, 173, 0.6);
             }
 
+            /* Token placement/addition animation */
+            .plate.just-placed {
+                animation: plate-pulse 0.6s ease-out;
+            }
+
+            .plate.just-placed .plate-cover {
+                border-color: #f39c12;
+                box-shadow: 0 0 30px rgba(243, 156, 18, 0.9);
+            }
+
+            @keyframes plate-pulse {
+                0% {
+                    transform: scale(1);
+                }
+                30% {
+                    transform: scale(1.15);
+                }
+                60% {
+                    transform: scale(1.05);
+                }
+                100% {
+                    transform: scale(1);
+                }
+            }
+
             .plate.token-added .plate-cover {
                 border-color: #2ecc71;
                 box-shadow: 0 0 25px rgba(46, 204, 113, 0.8);
@@ -1095,6 +1120,11 @@
                         // Matched plates styling
                         if (state.matchedPlates && state.matchedPlates.includes(index)) {
                             plateEl.classList.add('selected');
+                        }
+
+                        // Last action animation (placement or addition)
+                        if (state.lastActionPlate === index) {
+                            plateEl.classList.add('just-placed');
                         }
 
                         plateEl.innerHTML = `

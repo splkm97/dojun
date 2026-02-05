@@ -392,15 +392,16 @@ func (r *Room) GetGameStateForPlayer(playerIndex int) ws.GameStatePayload {
 	}
 
 	state := ws.GameStatePayload{
-		Phase:          string(r.State.Phase),
-		CurrentTurn:    r.State.CurrentTurn,
-		PlacementRound: r.State.PlacementRound,
-		MaxRound:       r.State.MaxRound,
-		TimeLeft:       r.State.TimeLeft,
-		Players:        players,
-		Plates:         plates,
-		SelectedPlates: []int{},
-		MatchedPlates:  r.State.MatchedPlates,
+		Phase:           string(r.State.Phase),
+		CurrentTurn:     r.State.CurrentTurn,
+		PlacementRound:  r.State.PlacementRound,
+		MaxRound:        r.State.MaxRound,
+		TimeLeft:        r.State.TimeLeft,
+		Players:         players,
+		Plates:          plates,
+		SelectedPlates:  []int{},
+		MatchedPlates:   r.State.MatchedPlates,
+		LastActionPlate: r.State.LastActionPlate,
 	}
 
 	// During matching phase, show selections appropriately
