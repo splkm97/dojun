@@ -99,15 +99,15 @@ const (
 |--------|---------|-------------|------|
 | 오류 | Error | `error` | 오류 발생 알림 (`{code, message}`) |
 | 대기열 참여됨 | Queue Joined | `queue_joined` | 랜덤 매칭 대기열 참여 확인 (`{position}`) |
-| 매칭됨 | Matched | `matched` | 상대와 매칭 완료 (`{roomId, playerIndex, opponent}`) |
+| 매칭됨 | Matched | `matched` | 상대와 매칭 완료 (`{roomId, roomCode?, playerIndex, opponent}`) |
 | 방 생성됨 | Room Created | `room_created` | 방 생성 완료 (`{roomId, roomCode}`) |
-| 방 참여됨 | Room Joined | `room_joined` | 방 참여 완료 |
+| 방 참여됨 | Room Joined | `room_joined` | 방 참여 완료 (`{roomId, roomCode, playerIndex, opponent}`) |
 | 게임 상태 | Game State | `game_state` | 현재 게임 상태 전체 전송 |
 | 게임 종료 | Game End | `game_end` | 게임 종료 및 결과 (`{winner, reason, finalTokens}`) |
 | 플레이어 퇴장 | Player Left | `player_left` | 상대 연결 끊김 알림 (`{gracePeriod}`) |
 | 재접속 완료 | Reconnected | `reconnected` | 재접속 성공 (`{playerIndex}`) |
 
-**코드 참조:** `internal/ws/message.go:21-29`
+**코드 참조:** `internal/ws/message.go`, `cmd/server/main.go`
 
 ---
 
@@ -165,7 +165,7 @@ const (
 |--------|---------|---------|------|
 | 토큰 소진 | Tokens Depleted | `tokens` | 플레이어가 토큰을 모두 소진하여 승리 |
 | 매칭 불가 | No Matches | `no_matches` | 더 이상 매칭 가능한 쌍이 없음 (토큰 수 비교로 승패 결정) |
-| 기권 | Forfeit | `forfeit` | 상대방이 재접속 유예 기간 내 복귀하지 않음 |
+| 기권 | Forfeit | `forfeit` | 명시적 방 나가기(`leave_room`) 또는 재접속 유예 시간 초과 |
 
 **코드 참조:** `internal/ws/message.go:137-142`
 
@@ -221,12 +221,67 @@ const (
 
 ---
 
-## 10. 파일 참조 요약
+## 10. 운영 상수 및 제한 (Runtime Constants)
+
+| 항목 | 코드 심볼 | 기본값 | 설명 |
+|------|-----------|--------|------|
+| 재접속 유예 시간 | `ReconnectGracePeriod` | `30s` | 상대 연결 끊김 후 복귀 허용 시간 |
+| 기본 접시 수 | `DefaultPlateCount` | `20` | 방 생성 시 `plateCount` 미지정(0) 기본값 |
+| 매칭 제한 시간 | `MatchingTimeLimit` | `60` | 매칭 단계 턴 제한 시간(초) |
+
+**코드 참조:** `internal/game/room.go`
+
+---
+
+## 11. 튜토리얼/가이드 UI 용어 (Tutorial/Guide UI Terms)
+
+프론트엔드에서 제공하는 튜토리얼/규칙 상세 UI 관련 용어입니다.
+
+| 한국어 | English | 키/식별자 | 설명 |
+|--------|---------|-----------|------|
+| 가이드 저장 키 | Guide Storage Key | `memoryFeastOnlineGuideStateV1` | 로컬스토리지에 가이드 진행 상태 저장 |
+| 가이드 탭 | Guide Tab | `tutorial` / `rules` | 모달의 튜토리얼/규칙 상세 탭 |
+| 단계 도움말 | Phase Help | `phase-help` panel | 현재 게임 단계 기반 설명 표시 |
+| 메시지 타입 | Message Type | `success` / `fail` / `info` | 인게임 알림 스타일 구분 |
+
+연결 상태 표시값(클라이언트 UI):
+
+| 상태 값 | 표시 텍스트 |
+|---------|-------------|
+| `connecting` | 연결 중... |
+| `connected` | 연결됨 |
+| `disconnected` | 연결 끊김 |
+
+**코드 참조:** `web/index.html`
+
+---
+
+## 12. 내부 동기화/보호 용어 (Internal Safety Terms)
+
+동시성 및 중복 행동 방지를 위해 내부에서 사용하는 보호 용어입니다.
+
+| 용어 | 코드 식별자 | 설명 |
+|------|-------------|------|
+| 배치 중복 방지 잠금 | `placementPending` | 배치 단계에서 턴당 1회 클릭만 허용 |
+| 매칭 확인 중 잠금 | `confirmPending` | 매칭 확인 처리 중 추가 선택 차단 |
+| 토큰 추가 중 잠금 | `addTokenPending` | 토큰 추가 단계에서 중복 추가 차단 |
+| 방 활성 상태 확인 | `isRoomActive(room)` | 지연 콜백(`time.AfterFunc`) 실행 전 방 유효성 확인 |
+
+**코드 참조:** `internal/game/room.go`, `cmd/server/main.go`
+
+---
+
+## 13. 파일 참조 요약
 
 | 파일 | 내용 |
 |------|------|
 | `internal/game/state.go` | 게임 단계(Phase), 게임 상태(GameState), 상태 변경 함수 |
 | `internal/ws/message.go` | 메시지 타입, 페이로드 구조체, 상태별 허용 메시지 |
 | `internal/ws/hub.go` | 클라이언트 상태(ClientState), WebSocket 클라이언트 관리 |
+| `internal/ws/client.go` | WebSocket read/write 루프, ping/pong, 메시지 크기 제한 |
 | `internal/game/room.go` | 방 관리, 행동 핸들러, 상태 브로드캐스트 |
+| `internal/game/player.go` | 플레이어 연결/재접속 상태, 연결 끊김 시간 관리 |
+| `internal/game/matchmaker.go` | 랜덤 매칭 큐, 큐 타임아웃, 매칭 페어링 |
+| `internal/store/redis.go` | Redis/Memory 저장소 모델, 세션-방 매핑 |
 | `cmd/server/main.go` | 메시지 라우팅, HTTP/WebSocket 핸들러 |
+| `web/index.html` | 클라이언트 상태 렌더링, 게임 UI, 튜토리얼/가이드 UI |
