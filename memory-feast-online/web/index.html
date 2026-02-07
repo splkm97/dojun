@@ -1531,12 +1531,23 @@
                     document.getElementById('guide-step-summary').textContent = currentStep.summary;
 
                     const pointsEl = document.getElementById('guide-step-points');
-                    pointsEl.innerHTML = currentStep.points.map((point) => `<li>${point}</li>`).join('');
+                    pointsEl.replaceChildren();
+                    currentStep.points.forEach((point) => {
+                        const li = document.createElement('li');
+                        li.textContent = point;
+                        pointsEl.appendChild(li);
+                    });
 
                     const dotsEl = document.getElementById('guide-dots');
-                    dotsEl.innerHTML = steps
-                        .map((_, index) => `<div class="guide-dot ${index + 1 === this.guideStep ? 'active' : ''}"></div>`)
-                        .join('');
+                    dotsEl.replaceChildren();
+                    steps.forEach((_, index) => {
+                        const dot = document.createElement('div');
+                        dot.className = 'guide-dot';
+                        if (index + 1 === this.guideStep) {
+                            dot.classList.add('active');
+                        }
+                        dotsEl.appendChild(dot);
+                    });
 
                     const prevBtn = document.getElementById('guide-prev');
                     const nextBtn = document.getElementById('guide-next');
@@ -1547,12 +1558,26 @@
 
                 renderRulesList() {
                     const listEl = document.getElementById('guide-rules-list');
-                    listEl.innerHTML = this.guideContent.rules
-                        .map((rule) => {
-                            const details = rule.details.map((item) => `<li>${item}</li>`).join('');
-                            return `<div class="guide-rule-item" data-phase="${rule.phase}"><h4>${rule.label}</h4><ul>${details}</ul></div>`;
-                        })
-                        .join('');
+                    listEl.replaceChildren();
+                    this.guideContent.rules.forEach((rule) => {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'guide-rule-item';
+                        wrapper.dataset.phase = rule.phase;
+
+                        const title = document.createElement('h4');
+                        title.textContent = rule.label;
+
+                        const details = document.createElement('ul');
+                        rule.details.forEach((item) => {
+                            const li = document.createElement('li');
+                            li.textContent = item;
+                            details.appendChild(li);
+                        });
+
+                        wrapper.appendChild(title);
+                        wrapper.appendChild(details);
+                        listEl.appendChild(wrapper);
+                    });
                 }
 
                 updatePhaseHelp(phase) {
@@ -1646,7 +1671,7 @@
                     const state = this.gameState;
                     if (!state) return;
 
-                    container.innerHTML = '';
+                    container.replaceChildren();
 
                     // Determine grid columns based on plate count
                     const plateCount = state.plates.length;
@@ -1699,15 +1724,33 @@
                             plateEl.classList.add('just-placed');
                         }
 
-                        plateEl.innerHTML = `
-                            <div class="plate-base">
-                                <span class="plate-number">${index + 1}번</span>
-                                <span class="token-count">${plate.tokens}개</span>
-                            </div>
-                            <div class="plate-cover ${!plate.covered ? 'open' : ''}">
-                                <span class="cover-number">${index + 1}</span>
-                            </div>
-                        `;
+                        const plateBase = document.createElement('div');
+                        plateBase.className = 'plate-base';
+
+                        const plateNumber = document.createElement('span');
+                        plateNumber.className = 'plate-number';
+                        plateNumber.textContent = `${index + 1}번`;
+
+                        const tokenCount = document.createElement('span');
+                        tokenCount.className = 'token-count';
+                        tokenCount.textContent = `${plate.tokens}개`;
+
+                        plateBase.appendChild(plateNumber);
+                        plateBase.appendChild(tokenCount);
+
+                        const plateCover = document.createElement('div');
+                        plateCover.className = 'plate-cover';
+                        if (!plate.covered) {
+                            plateCover.classList.add('open');
+                        }
+
+                        const coverNumber = document.createElement('span');
+                        coverNumber.className = 'cover-number';
+                        coverNumber.textContent = `${index + 1}`;
+
+                        plateCover.appendChild(coverNumber);
+                        plateEl.appendChild(plateBase);
+                        plateEl.appendChild(plateCover);
 
                         plateEl.addEventListener('click', () => this.onPlateClick(index));
                         container.appendChild(plateEl);
@@ -1858,9 +1901,15 @@
 
                 showMessage(text, type) {
                     const area = document.getElementById('message-area');
-                    area.innerHTML = `<div class="message ${type}">${text}</div>`;
+                    area.replaceChildren();
+                    const box = document.createElement('div');
+                    box.classList.add('message');
+                    const normalizedType = (type === 'success' || type === 'fail' || type === 'info') ? type : 'info';
+                    box.classList.add(normalizedType);
+                    box.textContent = text;
+                    area.appendChild(box);
                     setTimeout(() => {
-                        area.innerHTML = '';
+                        area.replaceChildren();
                     }, 3000);
                 }
             }

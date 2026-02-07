@@ -13,17 +13,17 @@ const (
 
 // QueueEntry represents a player waiting for a match
 type QueueEntry struct {
-	Player    *Player
-	Conn      *websocket.Conn
-	JoinedAt  time.Time
+	Player     *Player
+	Conn       *websocket.Conn
+	JoinedAt   time.Time
 	PlateCount int
 }
 
 // Matchmaker handles random matchmaking
 type Matchmaker struct {
-	queue      []*QueueEntry
-	mu         sync.Mutex
-	onMatched  func(entry1, entry2 *QueueEntry) *Room
+	queue     []*QueueEntry
+	mu        sync.Mutex
+	onMatched func(entry1, entry2 *QueueEntry) *Room
 }
 
 // NewMatchmaker creates a new matchmaker instance
@@ -56,10 +56,10 @@ func (mm *Matchmaker) JoinQueue(player *Player, conn *websocket.Conn, plateCount
 	}
 
 	entry := &QueueEntry{
-		Player:    player,
-		Conn:      conn,
-		JoinedAt:  time.Now(),
-		PlateCount: plateCount,
+		Player:     player,
+		Conn:       conn,
+		JoinedAt:   time.Now(),
+		PlateCount: ClampPlateCount(plateCount),
 	}
 
 	// Check for a match (FIFO - take first available)
@@ -67,18 +67,6 @@ func (mm *Matchmaker) JoinQueue(player *Player, conn *websocket.Conn, plateCount
 		// Match with first player in queue
 		opponent := mm.queue[0]
 		mm.queue = mm.queue[1:]
-
-		// Use the average of plate counts (rounded to even)
-		avgPlateCount := (entry.PlateCount + opponent.PlateCount) / 2
-		if avgPlateCount%2 != 0 {
-			avgPlateCount++
-		}
-		if avgPlateCount < 4 {
-			avgPlateCount = 4
-		}
-		if avgPlateCount > 20 {
-			avgPlateCount = 20
-		}
 
 		// Create room via callback
 		if mm.onMatched != nil {

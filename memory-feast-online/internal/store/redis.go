@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -230,6 +231,7 @@ func (s *RedisStore) DeleteSession(ctx context.Context, sessionID string) error 
 
 // MemoryStore implements Store using in-memory maps (for testing/simple deployments)
 type MemoryStore struct {
+	mu       sync.RWMutex
 	rooms    map[string]*RoomData
 	codes    map[string]string // code -> roomID
 	sessions map[string]*SessionData
@@ -245,16 +247,25 @@ func NewMemoryStore() *MemoryStore {
 }
 
 func (s *MemoryStore) SaveRoom(ctx context.Context, room *RoomData) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.rooms[room.ID] = room
 	s.codes[room.Code] = room.ID
 	return nil
 }
 
 func (s *MemoryStore) GetRoom(ctx context.Context, roomID string) (*RoomData, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	return s.rooms[roomID], nil
 }
 
 func (s *MemoryStore) DeleteRoom(ctx context.Context, roomID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if room, ok := s.rooms[roomID]; ok {
 		delete(s.codes, room.Code)
 		delete(s.rooms, roomID)
@@ -263,13 +274,19 @@ func (s *MemoryStore) DeleteRoom(ctx context.Context, roomID string) error {
 }
 
 func (s *MemoryStore) GetRoomByCode(ctx context.Context, code string) (*RoomData, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	if roomID, ok := s.codes[code]; ok {
-		return s.GetRoom(ctx, roomID)
+		return s.rooms[roomID], nil
 	}
 	return nil, nil
 }
 
 func (s *MemoryStore) SaveSession(ctx context.Context, sessionID, roomID string, playerIndex int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.sessions[sessionID] = &SessionData{
 		RoomID:      roomID,
 		PlayerIndex: playerIndex,
@@ -278,6 +295,9 @@ func (s *MemoryStore) SaveSession(ctx context.Context, sessionID, roomID string,
 }
 
 func (s *MemoryStore) GetSession(ctx context.Context, sessionID string) (string, int, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	if session, ok := s.sessions[sessionID]; ok {
 		return session.RoomID, session.PlayerIndex, nil
 	}
@@ -285,6 +305,9 @@ func (s *MemoryStore) GetSession(ctx context.Context, sessionID string) (string,
 }
 
 func (s *MemoryStore) DeleteSession(ctx context.Context, sessionID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	delete(s.sessions, sessionID)
 	return nil
 }

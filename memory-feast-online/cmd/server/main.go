@@ -43,17 +43,7 @@ func NewServer(st store.Store) *Server {
 
 	// Initialize matchmaker with callback
 	s.matchmaker = game.NewMatchmaker(func(entry1, entry2 *game.QueueEntry) *game.Room {
-		// Calculate plate count (average, rounded to even)
-		plateCount := (entry1.PlateCount + entry2.PlateCount) / 2
-		if plateCount%2 != 0 {
-			plateCount++
-		}
-		if plateCount < 4 {
-			plateCount = 4
-		}
-		if plateCount > 20 {
-			plateCount = 20
-		}
+		plateCount := game.ClampPlateCount((entry1.PlateCount + entry2.PlateCount) / 2)
 
 		room := game.NewRoom(plateCount)
 		room.Hub = s.hub
@@ -253,9 +243,10 @@ func (s *Server) handleCreateRoom(client *ws.Client, msg *ws.Message) {
 	}
 
 	plateCount := payload.PlateCount
-	if plateCount < 4 {
-		plateCount = 20
+	if plateCount == 0 {
+		plateCount = game.DefaultPlateCount
 	}
+	plateCount = game.ClampPlateCount(plateCount)
 
 	room := game.NewRoom(plateCount)
 	room.Hub = s.hub
@@ -374,6 +365,10 @@ func (s *Server) handlePlaceToken(client *ws.Client, msg *ws.Message) {
 
 	// Wait briefly then advance turn
 	time.AfterFunc(1500*time.Millisecond, func() {
+		if !s.isRoomActive(room) {
+			return
+		}
+
 		room.CoverPlate(payload.Index)
 
 		if room.AdvancePlacement() {
@@ -424,21 +419,29 @@ func (s *Server) handleConfirmMatch(client *ws.Client, msg *ws.Message) {
 	room.BroadcastState()
 
 	time.AfterFunc(2*time.Second, func() {
+		if !s.isRoomActive(room) {
+			return
+		}
+
 		if matched {
 			// Success - transition to add token phase
 			room.SetAddTokenPhase()
-			state := room.GetGameState()
-			state.Message = "매치 성공! 토큰을 추가할 접시를 선택하세요."
-			state.MessageType = "success"
-			s.broadcastStateWithMessage(room, state)
+			s.broadcastStateWithMessage(room, "매치 성공! 토큰을 추가할 접시를 선택하세요.", "success")
 		} else {
 			// Fail - add penalty and advance turn
 			room.HandleMatchFail(playerIndex)
-			state := room.GetGameState()
-			state.Message = "매치 실패! " + room.GetPlayer(playerIndex).Nickname + "에게 페널티 토큰 +1"
-			state.MessageType = "fail"
+			player := room.GetPlayer(playerIndex)
+			nickname := "해당 플레이어"
+			if player != nil {
+				nickname = player.Nickname
+			}
+			message := "매치 실패! " + nickname + "에게 페널티 토큰 +1"
 
 			time.AfterFunc(2*time.Second, func() {
+				if !s.isRoomActive(room) {
+					return
+				}
+
 				if room.AdvanceMatching() {
 					s.startMatchingTimer(room)
 					room.BroadcastState()
@@ -447,7 +450,7 @@ func (s *Server) handleConfirmMatch(client *ws.Client, msg *ws.Message) {
 				}
 			})
 
-			s.broadcastStateWithMessage(room, state)
+			s.broadcastStateWithMessage(room, message, "fail")
 		}
 	})
 }
@@ -477,6 +480,9 @@ func (s *Server) handleAddToken(client *ws.Client, msg *ws.Message) {
 	if playerWon {
 		// Delay to show animation before ending game
 		time.AfterFunc(1500*time.Millisecond, func() {
+			if !s.isRoomActive(room) {
+				return
+			}
 			s.endGame(room, playerIndex, "tokens")
 		})
 		return
@@ -484,6 +490,10 @@ func (s *Server) handleAddToken(client *ws.Client, msg *ws.Message) {
 
 	// Delay to show animation, then continue to next turn
 	time.AfterFunc(1500*time.Millisecond, func() {
+		if !s.isRoomActive(room) {
+			return
+		}
+
 		if room.AdvanceMatching() {
 			s.startMatchingTimer(room)
 			room.BroadcastState()
@@ -577,20 +587,29 @@ func (s *Server) findPlayerRoom(sessionID string) (*game.Room, int) {
 func (s *Server) startMatchingTimer(room *game.Room) {
 	room.StartTimer(
 		func(timeLeft int) {
+			if !s.isRoomActive(room) {
+				return
+			}
+
 			// Tick - broadcast updated time
 			room.BroadcastState()
 		},
 		func() {
+			if !s.isRoomActive(room) {
+				return
+			}
+
 			// Timeout
 			currentTurn := room.GetCurrentTurn()
 			room.HandleTimeout(currentTurn)
 
-			state := room.GetGameState()
-			state.Message = "시간 초과! 페널티 토큰 +2"
-			state.MessageType = "fail"
-			s.broadcastStateWithMessage(room, state)
+			s.broadcastStateWithMessage(room, "시간 초과! 페널티 토큰 +2", "fail")
 
 			time.AfterFunc(2*time.Second, func() {
+				if !s.isRoomActive(room) {
+					return
+				}
+
 				if room.AdvanceMatching() {
 					s.startMatchingTimer(room)
 					room.BroadcastState()
@@ -602,9 +621,36 @@ func (s *Server) startMatchingTimer(room *game.Room) {
 	)
 }
 
-func (s *Server) broadcastStateWithMessage(room *game.Room, state ws.GameStatePayload) {
-	msg, _ := ws.NewMessage(ws.MsgGameState, state)
-	room.BroadcastMessage(msg)
+func (s *Server) broadcastStateWithMessage(room *game.Room, message, messageType string) {
+	for i := 0; i < 2; i++ {
+		if room.GetPlayer(i) == nil {
+			continue
+		}
+
+		state := room.GetGameStateForPlayer(i)
+		state.Message = message
+		state.MessageType = messageType
+
+		msg, err := ws.NewMessage(ws.MsgGameState, state)
+		if err != nil {
+			log.Printf("failed to create game_state message for player %d in room %s: %v", i, room.ID, err)
+			continue
+		}
+
+		if err := room.SendToPlayer(i, msg); err != nil {
+			log.Printf("failed to send game_state to player %d in room %s: %v", i, room.ID, err)
+		}
+	}
+}
+
+func (s *Server) isRoomActive(room *game.Room) bool {
+	if room == nil {
+		return false
+	}
+	if room.GetPhase() == game.PhaseFinished {
+		return false
+	}
+	return s.getRoom(room.ID) == room
 }
 
 // resetPlayersToLobby transitions all players in a room back to Lobby state

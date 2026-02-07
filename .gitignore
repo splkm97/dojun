@@ -5,3 +5,7 @@ playwright-report/
 
 # Go binaries
 memory-feast-online/memory-feast-online
+memory-feast-online/server
+
+.sisyphus/
+.outline/

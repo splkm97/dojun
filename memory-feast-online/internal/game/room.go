@@ -41,16 +41,7 @@ type Room struct {
 
 // NewRoom creates a new room
 func NewRoom(plateCount int) *Room {
-	if plateCount < 4 {
-		plateCount = 4
-	}
-	if plateCount > 20 {
-		plateCount = 20
-	}
-	// Ensure even number
-	if plateCount%2 != 0 {
-		plateCount++
-	}
+	plateCount = ClampPlateCount(plateCount)
 
 	return &Room{
 		ID:         GenerateID(),
@@ -155,6 +146,11 @@ func (r *Room) StartGame() {
 func (r *Room) StartMatchingPhase() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	if r.Players[0] == nil || r.Players[1] == nil {
+		log.Printf("room %s cannot start matching phase: missing player", r.ID)
+		return
+	}
 
 	initialTokens := max(5, r.State.MaxRound+1)
 	r.Players[0].Tokens = initialTokens
@@ -287,6 +283,13 @@ func (r *Room) HandleMatchFail(playerIndex int) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if playerIndex < 0 || playerIndex > 1 {
+		return
+	}
+	if r.Players[playerIndex] == nil {
+		return
+	}
+
 	// Add penalty token
 	r.Players[playerIndex].Tokens++
 }
@@ -295,6 +298,13 @@ func (r *Room) HandleMatchFail(playerIndex int) {
 func (r *Room) HandleTimeout(playerIndex int) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	if playerIndex < 0 || playerIndex > 1 {
+		return
+	}
+	if r.Players[playerIndex] == nil {
+		return
+	}
 
 	// Add penalty tokens (2 for timeout)
 	r.Players[playerIndex].Tokens += 2
@@ -323,8 +333,21 @@ func (r *Room) GetWinner() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	t0 := r.Players[0].Tokens
-	t1 := r.Players[1].Tokens
+	p0 := r.Players[0]
+	p1 := r.Players[1]
+
+	if p0 == nil && p1 == nil {
+		return -1
+	}
+	if p0 == nil {
+		return 1
+	}
+	if p1 == nil {
+		return 0
+	}
+
+	t0 := p0.Tokens
+	t1 := p1.Tokens
 
 	if t0 < t1 {
 		return 0
@@ -599,9 +622,16 @@ func generateRoomCode() string {
 	return string(code)
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
+// ClampPlateCount normalizes plate count to game constraints.
+func ClampPlateCount(plateCount int) int {
+	if plateCount%2 != 0 {
+		plateCount++
 	}
-	return b
+	if plateCount < 4 {
+		plateCount = 4
+	}
+	if plateCount > 20 {
+		plateCount = 20
+	}
+	return plateCount
 }
