@@ -256,19 +256,23 @@ test.describe('State Machine - GamePhase Transitions', () => {
     await context2.close();
   });
 
-  test('should block input during reveal animation phase (placeholder)', async ({ browser }) => {
-    // This test documents expected behavior for explicit matching substates
-    // Full implementation would require the matching phase to be split into:
-    // - matching_select: Player selecting plates
-    // - matching_reveal: 2s animation showing plates
-    // - matching_result: Processing outcome
-
-    // For now, just verify we can start a game
+  test('should establish websocket and lobby state before in-game transitions', async ({ browser }) => {
     const context = await browser.newContext();
     const page = await context.newPage();
     await connectWebSocket(page);
 
-    expect(true).toBe(true);
+    const result = await page.evaluate(() => {
+      const game = (window as any).game;
+      return {
+        hasGame: !!game,
+        wsOpen: game?.ws?.readyState === WebSocket.OPEN,
+        hasSessionId: typeof game?.sessionId === 'string' && game.sessionId.length > 0,
+      };
+    });
+
+    expect(result.hasGame).toBe(true);
+    expect(result.wsOpen).toBe(true);
+    expect(result.hasSessionId).toBe(true);
 
     await context.close();
   });
@@ -404,20 +408,18 @@ test.describe('State Machine - Message Validation', () => {
 
 test.describe('State Machine - Explicit Phase Substates', () => {
 
-  test('should have explicit matching substates: Select, Reveal, Result (placeholder)', async ({ browser }) => {
-    // This test documents the expected state machine design for matching phase
-    // Current implementation uses a single "matching" phase with implicit timer states
-    // Future implementation should use:
-    // - matching_select: Can send select_plate, confirm_match
-    // - matching_reveal: No input allowed (2s animation)
-    // - matching_result: Server-driven transition
+  test('should keep game_state phase within known state-machine values', async ({ browser }) => {
 
     const context = await browser.newContext();
     const page = await context.newPage();
     await connectWebSocket(page);
 
-    // Placeholder - verifies test infrastructure works
-    expect(true).toBe(true);
+    const phase = await page.evaluate(() => {
+      const game = (window as any).game;
+      return game?.gameState?.phase || 'waiting';
+    });
+
+    expect(['waiting', 'placement', 'matching', 'add_token', 'finished']).toContain(phase);
 
     await context.close();
   });

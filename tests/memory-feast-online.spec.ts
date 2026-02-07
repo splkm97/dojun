@@ -156,8 +156,9 @@ test.describe('Edge Cases', () => {
 
     // Simulate disconnect by closing WebSocket (if possible via console)
     await page.evaluate(() => {
-      if (window.game && window.game.ws) {
-        window.game.ws.close()
+      const game = (window as any).game
+      if (game && game.ws) {
+        game.ws.close()
       }
     })
 
@@ -172,8 +173,9 @@ test.describe('Edge Cases', () => {
 
     // Close WebSocket
     await page.evaluate(() => {
-      if (window.game && window.game.ws) {
-        window.game.ws.close()
+      const game = (window as any).game
+      if (game && game.ws) {
+        game.ws.close()
       }
     })
 
@@ -185,9 +187,33 @@ test.describe('Edge Cases', () => {
     // Note: Will only succeed if server is running
     await page.waitForTimeout(4000)
 
-    // Status should change (either connecting or connected)
+    // Status should change to a retrying/connected state
     const currentClass = await status.getAttribute('class')
-    expect(currentClass).toMatch(/connecting|connected|disconnected/)
+    expect(currentClass).toMatch(/connecting|connected/)
+  })
+
+  test('should expose exponential reconnect delay strategy', async ({ page }) => {
+    await navigateToOnlineGame(page)
+
+    const result = await page.evaluate(() => {
+      const game = (window as any).game
+      if (!game || typeof game.getReconnectDelay !== 'function') {
+        return { hasStrategy: false, d1: 0, d2: 0, d3: 0 }
+      }
+
+      game.reconnectAttempts = 0
+      const d1 = game.getReconnectDelay()
+      game.reconnectAttempts = 1
+      const d2 = game.getReconnectDelay()
+      game.reconnectAttempts = 2
+      const d3 = game.getReconnectDelay()
+
+      return { hasStrategy: true, d1, d2, d3 }
+    })
+
+    expect(result.hasStrategy).toBe(true)
+    expect(result.d2).toBeGreaterThanOrEqual(result.d1)
+    expect(result.d3).toBeGreaterThanOrEqual(result.d2)
   })
 
   test('should persist sessionId in localStorage', async ({ page }) => {

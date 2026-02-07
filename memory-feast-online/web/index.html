@@ -855,6 +855,7 @@
             class OnlineMemoryFeast {
                 constructor() {
                     this.ws = null;
+                    this.reconnectAttempts = 0;
                     this.sessionId = localStorage.getItem('sessionId') || this.generateSessionId();
                     localStorage.setItem('sessionId', this.sessionId);
 
@@ -875,6 +876,14 @@
                     });
                 }
 
+                getReconnectDelay() {
+                    const baseDelay = 1000;
+                    const maxDelay = 10000;
+                    const exponentialDelay = Math.min(maxDelay, baseDelay * (2 ** this.reconnectAttempts));
+                    const jitter = Math.floor(Math.random() * 300);
+                    return exponentialDelay + jitter;
+                }
+
                 connect() {
                     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
                     const wsUrl = `${protocol}//${location.host}/ws?sessionId=${this.sessionId}`;
@@ -885,6 +894,7 @@
 
                     this.ws.onopen = () => {
                         console.log('WebSocket connected');
+                        this.reconnectAttempts = 0;
                         this.updateConnectionStatus('connected');
 
                         // Attempt to reconnect to any active game
@@ -897,8 +907,10 @@
                     this.ws.onclose = () => {
                         console.log('WebSocket disconnected');
                         this.updateConnectionStatus('disconnected');
-                        // Attempt reconnection
-                        setTimeout(() => this.connect(), 3000);
+                        const delay = this.getReconnectDelay();
+                        this.reconnectAttempts += 1;
+                        // Attempt reconnection with exponential backoff + jitter
+                        setTimeout(() => this.connect(), delay);
                     };
 
                     this.ws.onerror = (error) => {
