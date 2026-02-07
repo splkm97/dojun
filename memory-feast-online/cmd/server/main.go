@@ -68,6 +68,10 @@ func isOriginAllowed(origin, allowedOrigins string) bool {
 		if candidate == "" {
 			continue
 		}
+		// Wildcard entries are intentionally unsupported. Provide explicit origins.
+		if candidate == "*" {
+			continue
+		}
 
 		candidateURL, err := url.Parse(candidate)
 		if err != nil || candidateURL.Scheme == "" || candidateURL.Host == "" {
@@ -201,6 +205,9 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := ws.NewClient(s.hub, conn, sessionID)
+	client.SetOnDisconnect(func(c *ws.Client) {
+		s.handleClientDisconnect(c)
+	})
 	s.hub.Register(client)
 
 	// Start write pump (includes ping/pong)
@@ -674,9 +681,11 @@ func (s *Server) handleLeaveRoom(client *ws.Client, msg *ws.Message) {
 	}
 
 	player := room.GetPlayer(playerIndex)
-	if player != nil {
-		player.ClearConnection()
+	if player == nil {
+		client.SetState(ws.ClientLobby)
+		return
 	}
+	player.ClearConnection()
 
 	// Transition leaving player to Lobby
 	client.SetState(ws.ClientLobby)
@@ -684,6 +693,62 @@ func (s *Server) handleLeaveRoom(client *ws.Client, msg *ws.Message) {
 	// Explicit leave = immediate forfeit, opponent wins
 	opponentIndex := 1 - playerIndex
 	s.endGame(room, opponentIndex, "forfeit")
+}
+
+func (s *Server) handleClientDisconnect(client *ws.Client) {
+	if client == nil {
+		return
+	}
+
+	room, playerIndex := s.findPlayerRoom(client.SessionID)
+	if room == nil {
+		s.matchmaker.LeaveQueue(client.SessionID)
+		return
+	}
+
+	player := room.GetPlayer(playerIndex)
+	if player == nil {
+		return
+	}
+
+	if player.GetConnection() != client.Conn {
+		return
+	}
+
+	player.ClearConnection()
+
+	if !room.IsFull() {
+		s.removeRoom(room.ID)
+		return
+	}
+
+	if !s.isRoomActive(room) {
+		return
+	}
+
+	opponentIndex := 1 - playerIndex
+	leftMsg, err := ws.NewMessage(ws.MsgPlayerLeft, ws.PlayerLeftPayload{
+		PlayerIndex: playerIndex,
+		GracePeriod: int(game.ReconnectGracePeriod / time.Second),
+	})
+	if err != nil {
+		log.Printf("failed to create player_left message for room %s: %v", room.ID, err)
+	} else if err := room.SendToPlayer(opponentIndex, leftMsg); err != nil {
+		log.Printf("failed to send player_left message to opponent %d in room %s: %v", opponentIndex, room.ID, err)
+	}
+
+	time.AfterFunc(game.ReconnectGracePeriod, func() {
+		if !s.isRoomActive(room) {
+			return
+		}
+
+		disconnected := room.GetPlayer(playerIndex)
+		if disconnected == nil || disconnected.IsConnected() {
+			return
+		}
+
+		s.endGame(room, opponentIndex, "forfeit")
+	})
 }
 
 func (s *Server) findPlayerRoom(sessionID string) (*game.Room, int) {

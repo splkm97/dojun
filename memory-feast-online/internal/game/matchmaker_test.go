@@ -62,3 +62,23 @@ func TestCleanupTimedOutKeepsRecentEntries(t *testing.T) {
 		t.Fatal("expected timeout callback not to be called")
 	}
 }
+
+func TestCleanupTimedOutWithNilCallback(t *testing.T) {
+	mm := NewMatchmaker(nil, nil)
+
+	player := NewPlayer("player-3", "NoCallback", "session-no-callback", nil)
+	position, room := mm.JoinQueue(player, nil, 20)
+	if position != 1 {
+		t.Fatalf("expected queue position 1, got %d", position)
+	}
+	if room != nil {
+		t.Fatalf("expected no room, got %v", room)
+	}
+
+	mm.queue[0].JoinedAt = time.Now().Add(-QueueTimeout - time.Second)
+	mm.cleanupTimedOut()
+
+	if got := mm.QueueSize(); got != 0 {
+		t.Fatalf("expected empty queue after cleanup, got %d", got)
+	}
+}
