@@ -864,6 +864,7 @@
                     this.playerIndex = -1;
                     this.gameState = null;
                     this.placementPending = false; // Lock to prevent multiple clicks during placement
+                    this.addTokenPending = false;  // Lock to prevent multiple clicks during add_token
 
                     this.connect();
                 }
@@ -1023,6 +1024,7 @@
                 handleGameState(payload) {
                     this.gameState = payload;
                     this.placementPending = false; // Reset click lock on state update
+                    this.addTokenPending = false;  // Reset add-token lock on state update
                     this.showScreen('game');
                     this.renderGameState();
                 }
@@ -1224,6 +1226,8 @@
                         });
                     } else if (state.phase === 'add_token') {
                         if (!state.matchedPlates.includes(index)) return;
+                        if (this.addTokenPending) return; // Block multiple clicks
+                        this.addTokenPending = true; // Lock until state update
                         this.send({
                             type: 'add_token',
                             payload: { index }

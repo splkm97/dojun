@@ -33,6 +33,7 @@ type Room struct {
 	timerDone        chan struct{}
 	placementPending bool // Lock to prevent multiple placements per turn
 	confirmPending   bool // Lock to block selections during confirm reveal
+	addTokenPending  bool // Lock to prevent multiple token additions per turn
 
 	// Callbacks
 	onEmpty func(roomID string)
@@ -264,10 +265,15 @@ func (r *Room) HandleAddToken(playerIndex, plateIndex int) (bool, int, bool) {
 	if r.State.CurrentTurn != playerIndex {
 		return false, 0, false
 	}
+	if r.addTokenPending {
+		return false, 0, false // Block multiple token additions per turn
+	}
 
 	if !r.State.AddToken(plateIndex) {
 		return false, 0, false
 	}
+
+	r.addTokenPending = true // Lock until turn advances
 
 	// Decrease player tokens
 	r.Players[playerIndex].Tokens--
@@ -300,7 +306,8 @@ func (r *Room) AdvanceMatching() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.confirmPending = false // Reset lock for next turn
+	r.confirmPending = false  // Reset lock for next turn
+	r.addTokenPending = false // Reset add-token lock for next turn
 
 	if !r.State.HasMatchingPairs() {
 		return false
