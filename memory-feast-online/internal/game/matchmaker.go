@@ -21,16 +21,21 @@ type QueueEntry struct {
 
 // Matchmaker handles random matchmaking
 type Matchmaker struct {
-	queue     []*QueueEntry
-	mu        sync.Mutex
-	onMatched func(entry1, entry2 *QueueEntry) *Room
+	queue      []*QueueEntry
+	mu         sync.Mutex
+	onMatched  func(entry1, entry2 *QueueEntry) *Room
+	onTimedOut func(entry *QueueEntry)
 }
 
 // NewMatchmaker creates a new matchmaker instance
-func NewMatchmaker(onMatched func(entry1, entry2 *QueueEntry) *Room) *Matchmaker {
+func NewMatchmaker(
+	onMatched func(entry1, entry2 *QueueEntry) *Room,
+	onTimedOut func(entry *QueueEntry),
+) *Matchmaker {
 	mm := &Matchmaker{
-		queue:     make([]*QueueEntry, 0),
-		onMatched: onMatched,
+		queue:      make([]*QueueEntry, 0),
+		onMatched:  onMatched,
+		onTimedOut: onTimedOut,
 	}
 
 	// Start cleanup goroutine
@@ -127,19 +132,30 @@ func (mm *Matchmaker) cleanupLoop() {
 
 func (mm *Matchmaker) cleanupTimedOut() {
 	mm.mu.Lock()
-	defer mm.mu.Unlock()
 
 	now := time.Now()
 	newQueue := make([]*QueueEntry, 0, len(mm.queue))
+	timedOut := make([]*QueueEntry, 0)
+	onTimedOut := mm.onTimedOut
 
 	for _, entry := range mm.queue {
 		if now.Sub(entry.JoinedAt) < QueueTimeout {
 			newQueue = append(newQueue, entry)
+		} else {
+			timedOut = append(timedOut, entry)
 		}
-		// Timed out entries are simply not added to newQueue
 	}
 
 	mm.queue = newQueue
+	mm.mu.Unlock()
+
+	if onTimedOut == nil {
+		return
+	}
+
+	for _, entry := range timedOut {
+		onTimedOut(entry)
+	}
 }
 
 // GetEntryBySessionID finds a queue entry by session ID

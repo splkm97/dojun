@@ -18,15 +18,16 @@ const (
 	MsgLeaveRoom    MessageType = "leave_room"
 
 	// Server -> Client messages
-	MsgError       MessageType = "error"
-	MsgQueueJoined MessageType = "queue_joined"
-	MsgMatched     MessageType = "matched"
-	MsgRoomCreated MessageType = "room_created"
-	MsgRoomJoined  MessageType = "room_joined"
-	MsgGameState   MessageType = "game_state"
-	MsgGameEnd     MessageType = "game_end"
-	MsgPlayerLeft  MessageType = "player_left"
-	MsgReconnected MessageType = "reconnected"
+	MsgError        MessageType = "error"
+	MsgQueueJoined  MessageType = "queue_joined"
+	MsgQueueTimeout MessageType = "queue_timeout"
+	MsgMatched      MessageType = "matched"
+	MsgRoomCreated  MessageType = "room_created"
+	MsgRoomJoined   MessageType = "room_joined"
+	MsgGameState    MessageType = "game_state"
+	MsgGameEnd      MessageType = "game_end"
+	MsgPlayerLeft   MessageType = "player_left"
+	MsgReconnected  MessageType = "reconnected"
 )
 
 // Message is the base WebSocket message structure
@@ -87,6 +88,11 @@ type ErrorPayload struct {
 // QueueJoinedPayload confirmation of queue join
 type QueueJoinedPayload struct {
 	Position int `json:"position"`
+}
+
+// QueueTimeoutPayload informs client that queue wait timed out
+type QueueTimeoutPayload struct {
+	TimeoutSeconds int `json:"timeoutSeconds"`
 }
 
 // MatchedPayload when two players are matched

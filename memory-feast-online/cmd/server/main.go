@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,8 +22,65 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins for development
+		return isAllowedWebSocketOrigin(r)
 	},
+}
+
+func isAllowedWebSocketOrigin(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	allowedOrigins := os.Getenv("ALLOWED_WS_ORIGINS")
+
+	if allowedOrigins == "" {
+		return isLocalOrigin(origin)
+	}
+
+	return isOriginAllowed(origin, allowedOrigins)
+}
+
+func isLocalOrigin(origin string) bool {
+	if origin == "" {
+		return true
+	}
+
+	originURL, err := url.Parse(origin)
+	if err != nil || originURL.Hostname() == "" {
+		return false
+	}
+
+	host := strings.ToLower(originURL.Hostname())
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
+
+func isOriginAllowed(origin, allowedOrigins string) bool {
+	if origin == "" {
+		return false
+	}
+
+	originURL, err := url.Parse(origin)
+	if err != nil || originURL.Scheme == "" || originURL.Host == "" {
+		return false
+	}
+
+	normalizedOrigin := strings.ToLower(originURL.Scheme) + "://" + strings.ToLower(originURL.Host)
+
+	for _, candidate := range strings.Split(allowedOrigins, ",") {
+		candidate = strings.TrimSpace(candidate)
+		if candidate == "" {
+			continue
+		}
+
+		candidateURL, err := url.Parse(candidate)
+		if err != nil || candidateURL.Scheme == "" || candidateURL.Host == "" {
+			continue
+		}
+
+		normalizedCandidate := strings.ToLower(candidateURL.Scheme) + "://" + strings.ToLower(candidateURL.Host)
+		if normalizedOrigin == normalizedCandidate {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Server holds all server state
@@ -42,29 +101,55 @@ func NewServer(st store.Store) *Server {
 	}
 
 	// Initialize matchmaker with callback
-	s.matchmaker = game.NewMatchmaker(func(entry1, entry2 *game.QueueEntry) *game.Room {
-		plateCount := game.ClampPlateCount((entry1.PlateCount + entry2.PlateCount) / 2)
+	s.matchmaker = game.NewMatchmaker(
+		func(entry1, entry2 *game.QueueEntry) *game.Room {
+			plateCount := game.ClampPlateCount((entry1.PlateCount + entry2.PlateCount) / 2)
 
-		room := game.NewRoom(plateCount)
-		room.Hub = s.hub
-		room.SetOnEmpty(func(roomID string) {
-			s.removeRoom(roomID)
-		})
+			room := game.NewRoom(plateCount)
+			room.Hub = s.hub
+			room.SetOnEmpty(func(roomID string) {
+				s.removeRoom(roomID)
+			})
 
-		// Add players
-		room.AddPlayer(entry1.Player)
-		room.AddPlayer(entry2.Player)
+			// Add players
+			room.AddPlayer(entry1.Player)
+			room.AddPlayer(entry2.Player)
 
-		// Store the room
-		s.roomsMu.Lock()
-		s.rooms[room.ID] = room
-		s.roomsMu.Unlock()
+			// Store the room
+			s.roomsMu.Lock()
+			s.rooms[room.ID] = room
+			s.roomsMu.Unlock()
 
-		// Start the game
-		room.StartGame()
+			// Start the game
+			room.StartGame()
 
-		return room
-	})
+			return room
+		},
+		func(entry *game.QueueEntry) {
+			if entry == nil || entry.Player == nil {
+				return
+			}
+
+			client := s.hub.GetClient(entry.Player.SessionID)
+			if client == nil {
+				return
+			}
+
+			client.SetState(ws.ClientLobby)
+
+			timeoutMsg, err := ws.NewMessage(ws.MsgQueueTimeout, ws.QueueTimeoutPayload{
+				TimeoutSeconds: int(game.QueueTimeout / time.Second),
+			})
+			if err != nil {
+				log.Printf("failed to create queue_timeout message for session %s: %v", entry.Player.SessionID, err)
+				return
+			}
+
+			if err := client.SendMessage(timeoutMsg); err != nil {
+				log.Printf("failed to send queue_timeout message for session %s: %v", entry.Player.SessionID, err)
+			}
+		},
+	)
 
 	return s
 }
@@ -204,11 +289,15 @@ func (s *Server) handleJoinQueue(client *ws.Client, msg *ws.Message) {
 		for i := 0; i < 2; i++ {
 			p := room.GetPlayer(i)
 			if p != nil {
-				matchedMsg, _ := ws.NewMessage(ws.MsgMatched, ws.MatchedPayload{
+				matchedMsg, err := ws.NewMessage(ws.MsgMatched, ws.MatchedPayload{
 					RoomID:      room.ID,
 					PlayerIndex: i,
 					Opponent:    room.GetOpponentNickname(i),
 				})
+				if err != nil {
+					log.Printf("failed to create matched message for player %d in room %s: %v", i, room.ID, err)
+					continue
+				}
 
 				c := s.hub.GetClient(p.SessionID)
 				if c != nil {
@@ -223,9 +312,13 @@ func (s *Server) handleJoinQueue(client *ws.Client, msg *ws.Message) {
 	} else {
 		// Added to queue - transition to Waiting
 		client.SetState(ws.ClientWaiting)
-		queueMsg, _ := ws.NewMessage(ws.MsgQueueJoined, ws.QueueJoinedPayload{
+		queueMsg, err := ws.NewMessage(ws.MsgQueueJoined, ws.QueueJoinedPayload{
 			Position: position,
 		})
+		if err != nil {
+			log.Printf("failed to create queue_joined message for session %s: %v", client.SessionID, err)
+			return
+		}
 		client.SendMessage(queueMsg)
 	}
 }
@@ -265,10 +358,14 @@ func (s *Server) handleCreateRoom(client *ws.Client, msg *ws.Message) {
 	client.SetState(ws.ClientWaiting)
 
 	// Send room created message
-	createdMsg, _ := ws.NewMessage(ws.MsgRoomCreated, ws.RoomCreatedPayload{
+	createdMsg, err := ws.NewMessage(ws.MsgRoomCreated, ws.RoomCreatedPayload{
 		RoomID:   room.ID,
 		RoomCode: room.Code,
 	})
+	if err != nil {
+		log.Printf("failed to create room_created message for room %s: %v", room.ID, err)
+		return
+	}
 	client.SendMessage(createdMsg)
 }
 
@@ -303,12 +400,16 @@ func (s *Server) handleJoinRoom(client *ws.Client, msg *ws.Message) {
 	}
 
 	// Send joined message
-	joinedMsg, _ := ws.NewMessage(ws.MsgRoomJoined, ws.MatchedPayload{
+	joinedMsg, err := ws.NewMessage(ws.MsgRoomJoined, ws.MatchedPayload{
 		RoomID:      room.ID,
 		RoomCode:    room.Code,
 		PlayerIndex: playerIndex,
 		Opponent:    room.GetOpponentNickname(playerIndex),
 	})
+	if err != nil {
+		log.Printf("failed to create room_joined message for room %s: %v", room.ID, err)
+		return
+	}
 	client.SendMessage(joinedMsg)
 
 	// If room is now full, start the game
@@ -322,11 +423,15 @@ func (s *Server) handleJoinRoom(client *ws.Client, msg *ws.Message) {
 		for i := 0; i < 2; i++ {
 			p := room.GetPlayer(i)
 			if p != nil && i != playerIndex {
-				matchedMsg, _ := ws.NewMessage(ws.MsgMatched, ws.MatchedPayload{
+				matchedMsg, err := ws.NewMessage(ws.MsgMatched, ws.MatchedPayload{
 					RoomID:      room.ID,
 					PlayerIndex: i,
 					Opponent:    room.GetOpponentNickname(i),
 				})
+				if err != nil {
+					log.Printf("failed to create matched message for player %d in room %s: %v", i, room.ID, err)
+					continue
+				}
 				c := s.hub.GetClient(p.SessionID)
 				if c != nil {
 					c.SetState(ws.ClientInGame)
@@ -541,9 +646,13 @@ func (s *Server) handleReconnect(client *ws.Client, msg *ws.Message) {
 	client.SetState(ws.ClientInGame)
 
 	// Send reconnected message
-	reconnectedMsg, _ := ws.NewMessage(ws.MsgReconnected, ws.ReconnectedPayload{
+	reconnectedMsg, err := ws.NewMessage(ws.MsgReconnected, ws.ReconnectedPayload{
 		PlayerIndex: playerIndex,
 	})
+	if err != nil {
+		log.Printf("failed to create reconnected message for session %s: %v", client.SessionID, err)
+		return
+	}
 	client.SendMessage(reconnectedMsg)
 
 	// Send current game state
@@ -555,6 +664,11 @@ func (s *Server) handleLeaveRoom(client *ws.Client, msg *ws.Message) {
 	if room == nil {
 		s.matchmaker.LeaveQueue(client.SessionID)
 		// If not in a room, just reset to lobby
+		client.SetState(ws.ClientLobby)
+		return
+	}
+
+	if !s.isRoomActive(room) {
 		client.SetState(ws.ClientLobby)
 		return
 	}
@@ -681,13 +795,17 @@ func (s *Server) endGame(room *game.Room, winner int, reason string) {
 		finalTokens[1] = p1.Tokens
 	}
 
-	endMsg, _ := ws.NewMessage(ws.MsgGameEnd, ws.GameEndPayload{
+	endMsg, err := ws.NewMessage(ws.MsgGameEnd, ws.GameEndPayload{
 		Winner:      winner + 1, // 1-indexed for display
 		WinnerName:  winnerName,
 		Reason:      reason,
 		FinalTokens: finalTokens,
 	})
-	room.BroadcastMessage(endMsg)
+	if err != nil {
+		log.Printf("failed to create game_end message for room %s: %v", room.ID, err)
+	} else {
+		room.BroadcastMessage(endMsg)
+	}
 
 	s.resetPlayersToLobby(room)
 	s.removeRoom(room.ID)
@@ -718,20 +836,28 @@ func (s *Server) endGameNoMatches(room *game.Room) {
 		displayWinner = winner + 1
 	}
 
-	endMsg, _ := ws.NewMessage(ws.MsgGameEnd, ws.GameEndPayload{
+	endMsg, err := ws.NewMessage(ws.MsgGameEnd, ws.GameEndPayload{
 		Winner:      displayWinner,
 		WinnerName:  winnerName,
 		Reason:      "no_matches",
 		FinalTokens: finalTokens,
 	})
-	room.BroadcastMessage(endMsg)
+	if err != nil {
+		log.Printf("failed to create game_end(no_matches) message for room %s: %v", room.ID, err)
+	} else {
+		room.BroadcastMessage(endMsg)
+	}
 
 	s.resetPlayersToLobby(room)
 	s.removeRoom(room.ID)
 }
 
 func (s *Server) sendError(client *ws.Client, code, message string) {
-	errMsg, _ := ws.NewErrorMessage(code, message)
+	errMsg, err := ws.NewErrorMessage(code, message)
+	if err != nil {
+		log.Printf("failed to create error message code=%s for session %s: %v", code, client.SessionID, err)
+		return
+	}
 	client.SendMessage(errMsg)
 }
 
