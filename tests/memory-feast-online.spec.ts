@@ -33,6 +33,41 @@ async function fillRoomCode(page: Page, code: string) {
   await page.locator('#room-code').fill(code)
 }
 
+async function injectMockGameState(page: Page, phase: 'placement' | 'matching' | 'add_token' = 'placement') {
+  await page.evaluate((currentPhase) => {
+    const game = (window as any).game
+    if (!game || typeof game.handleGameState !== 'function') {
+      return
+    }
+
+    const mockState = {
+      phase: currentPhase,
+      currentTurn: 0,
+      placementRound: 2,
+      maxRound: 9,
+      timeLeft: 47,
+      players: [
+        { nickname: '플레이어1', tokens: 7, isConnected: true },
+        { nickname: '플레이어2', tokens: 8, isConnected: true }
+      ],
+      plates: [
+        { tokens: 1, covered: true, hasTokens: true },
+        { tokens: 1, covered: true, hasTokens: true },
+        { tokens: 2, covered: true, hasTokens: true },
+        { tokens: 3, covered: true, hasTokens: true }
+      ],
+      selectedPlates: [],
+      opponentSelectedPlates: [],
+      matchedPlates: [0, 1],
+      message: '',
+      messageType: 'info',
+      lastActionPlate: 1
+    }
+
+    game.handleGameState(mockState)
+  }, phase)
+}
+
 // =============================================================================
 // 1. ERROR CASES - Validation and connection errors
 // =============================================================================
@@ -296,6 +331,45 @@ test.describe('Lobby UI', () => {
 
     await expect(page.locator('#nickname')).toHaveValue('TestPlayer')
   })
+
+  test('should open guide modal from lobby tutorial button', async ({ page }) => {
+    await navigateToOnlineGame(page)
+
+    await expect(page.locator('#guide-modal')).not.toHaveClass(/show/)
+    await page.locator('#open-guide-lobby').click()
+
+    await expect(page.locator('#guide-modal')).toHaveClass(/show/)
+    await expect(page.locator('#guide-tab-tutorial')).toHaveClass(/active/)
+    await expect(page.locator('#guide-step-title')).toContainText('게임 목표')
+  })
+
+  test('should switch to rules tab and show phase-highlighted rules', async ({ page }) => {
+    await navigateToOnlineGame(page)
+
+    await page.locator('#open-guide-lobby').click()
+    await page.locator('#guide-tab-rules').click()
+
+    await expect(page.locator('#guide-rules-panel')).toHaveClass(/active/)
+    await expect(page.locator('#guide-current-phase-label')).toContainText('배치 단계')
+    await expect(page.locator('.guide-rule-item.active-phase')).toContainText('배치 단계')
+  })
+
+  test('should persist guide completion in localStorage', async ({ page }) => {
+    await navigateToOnlineGame(page)
+
+    await page.locator('#open-guide-lobby').click()
+
+    for (let i = 0; i < 5; i++) {
+      await page.locator('#guide-next').click()
+    }
+
+    await expect(page.locator('#guide-modal')).not.toHaveClass(/show/)
+
+    const guideState = await page.evaluate(() => localStorage.getItem('memoryFeastOnlineGuideStateV1'))
+    expect(guideState).toBeTruthy()
+    const parsed = JSON.parse(guideState || '{}')
+    expect(parsed.completed).toBe(true)
+  })
 })
 
 // =============================================================================
@@ -366,6 +440,31 @@ test.describe('Game Screen UI', () => {
     await expect(page.locator('#winner-announcement')).toBeAttached()
     await expect(page.locator('#result-description')).toBeAttached()
     await expect(modal.locator('button:has-text("로비로")')).toBeAttached()
+  })
+
+  test('should update phase-aware help content when game phase changes', async ({ page }) => {
+    await navigateToOnlineGame(page)
+
+    await injectMockGameState(page, 'placement')
+    await expect(page.locator('#phase-help-title')).toContainText('배치 단계')
+
+    await injectMockGameState(page, 'matching')
+    await expect(page.locator('#phase-help-title')).toContainText('매칭 단계')
+
+    await injectMockGameState(page, 'add_token')
+    await expect(page.locator('#phase-help-title')).toContainText('토큰 추가 단계')
+  })
+
+  test('should open guide from in-game button with current phase label', async ({ page }) => {
+    await navigateToOnlineGame(page)
+
+    await injectMockGameState(page, 'matching')
+    await page.locator('#open-guide-game').click()
+    await page.locator('#guide-tab-rules').click()
+
+    await expect(page.locator('#guide-modal')).toHaveClass(/show/)
+    await expect(page.locator('#guide-current-phase-label')).toContainText('매칭 단계')
+    await expect(page.locator('.guide-rule-item.active-phase')).toContainText('매칭 단계')
   })
 })
 

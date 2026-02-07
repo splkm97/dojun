@@ -634,6 +634,182 @@
                 color: #ffd700;
             }
 
+            .lobby-rule-actions {
+                display: flex;
+                gap: 10px;
+                margin-top: 15px;
+            }
+
+            .lobby-rule-actions .btn {
+                flex: 1;
+            }
+
+            .phase-help-panel {
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 215, 0, 0.35);
+                border-radius: 10px;
+                margin: 10px auto;
+                max-width: 700px;
+                padding: 12px 14px;
+            }
+
+            .phase-help-panel h3 {
+                color: #ffd700;
+                font-size: 1rem;
+                margin-bottom: 6px;
+            }
+
+            .phase-help-panel p {
+                color: #ddd;
+                font-size: 0.95rem;
+                margin-bottom: 10px;
+            }
+
+            .guide-open-game-btn {
+                position: fixed;
+                bottom: 20px;
+                left: 110px;
+                font-size: 0.9rem;
+                padding: 8px 16px;
+                z-index: 100;
+            }
+
+            .guide-modal-content {
+                max-width: 760px;
+                max-height: 85vh;
+                overflow-y: auto;
+                text-align: left;
+                padding: 24px;
+            }
+
+            .guide-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+                gap: 12px;
+            }
+
+            .guide-header h2 {
+                margin: 0;
+                font-size: 1.8rem;
+            }
+
+            .guide-tabs {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 14px;
+            }
+
+            .guide-tab {
+                border: 1px solid rgba(255, 255, 255, 0.25);
+                background: rgba(255, 255, 255, 0.06);
+            }
+
+            .guide-tab.active {
+                border-color: #ffd700;
+                box-shadow: inset 0 0 0 1px rgba(255, 215, 0, 0.4);
+            }
+
+            .guide-panel {
+                display: none;
+            }
+
+            .guide-panel.active {
+                display: block;
+            }
+
+            .guide-step-card {
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 215, 0, 0.25);
+                border-radius: 12px;
+                padding: 16px;
+            }
+
+            .guide-step-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 8px;
+            }
+
+            .guide-step-emoji {
+                font-size: 1.6rem;
+            }
+
+            .guide-step-summary {
+                color: #f1f1f1;
+                margin-bottom: 10px;
+            }
+
+            .guide-step-points {
+                margin-left: 20px;
+                line-height: 1.65;
+                color: #ddd;
+            }
+
+            .guide-step-controls {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 10px;
+                margin-top: 14px;
+            }
+
+            .guide-dots {
+                display: flex;
+                gap: 6px;
+            }
+
+            .guide-dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.3);
+            }
+
+            .guide-dot.active {
+                background: #ffd700;
+            }
+
+            .guide-rules-current {
+                background: rgba(52, 152, 219, 0.2);
+                border: 1px solid rgba(52, 152, 219, 0.5);
+                border-radius: 10px;
+                padding: 10px 12px;
+                margin-bottom: 12px;
+            }
+
+            .guide-rules-list {
+                display: grid;
+                gap: 10px;
+            }
+
+            .guide-rule-item {
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                border-radius: 10px;
+                padding: 10px 12px;
+                background: rgba(255, 255, 255, 0.06);
+            }
+
+            .guide-rule-item.active-phase {
+                border-color: #ffd700;
+                background: rgba(255, 215, 0, 0.13);
+            }
+
+            .guide-rule-item h4 {
+                color: #ffd700;
+                margin-bottom: 6px;
+                font-size: 1rem;
+            }
+
+            .guide-rule-item ul {
+                margin-left: 18px;
+                color: #ddd;
+                line-height: 1.55;
+            }
+
             /* Mobile responsive */
             @media (max-width: 768px) {
                 .container {
@@ -684,6 +860,26 @@
                     letter-spacing: 5px;
                     padding: 15px 25px;
                 }
+
+                .guide-open-game-btn {
+                    left: 20px;
+                    bottom: 70px;
+                }
+
+                .guide-modal-content {
+                    width: 92vw;
+                    padding: 18px;
+                }
+
+                .guide-step-controls {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+
+                .guide-tabs,
+                .lobby-rule-actions {
+                    flex-direction: column;
+                }
             }
 
             @media (max-width: 480px) {
@@ -710,6 +906,10 @@
                 .btn {
                     padding: 8px 16px;
                     font-size: 0.9rem;
+                }
+
+                .guide-header h2 {
+                    font-size: 1.4rem;
                 }
             }
         </style>
@@ -765,6 +965,10 @@
                         <li><strong>실패/시간초과:</strong> 페널티 토큰 받기</li>
                         <li><strong>승리:</strong> 토큰을 먼저 소진한 플레이어 승리!</li>
                     </ul>
+                    <div class="lobby-rule-actions">
+                        <button class="btn btn-secondary" id="open-guide-lobby" onclick="game.openGuide('tutorial')">튜토리얼 보기</button>
+                        <button class="btn btn-primary" onclick="game.openGuide('rules')">규칙 자세히</button>
+                    </div>
                 </div>
             </div>
 
@@ -806,6 +1010,12 @@
                     <div class="current-placement" id="current-placement"></div>
                 </div>
 
+                <div class="phase-help-panel" id="phase-help">
+                    <h3 id="phase-help-title">배치 단계 도움말</h3>
+                    <p id="phase-help-text">번갈아가며 빈 접시를 선택해 해당 라운드 수만큼 토큰을 배치하세요.</p>
+                    <button class="btn btn-secondary" id="open-guide-game" onclick="game.openGuide('rules')">현재 단계 규칙 자세히</button>
+                </div>
+
                 <div id="message-area"></div>
 
                 <div class="plates-container" id="plates-container"></div>
@@ -816,6 +1026,10 @@
 
                 <button class="btn btn-danger leave-game-btn" onclick="game.showLeaveConfirm()">
                     나가기
+                </button>
+
+                <button class="btn btn-secondary guide-open-game-btn" onclick="game.openGuide('tutorial')">
+                    가이드
                 </button>
             </div>
 
@@ -849,6 +1063,43 @@
                     </button>
                 </div>
             </div>
+
+            <div class="modal" id="guide-modal">
+                <div class="modal-content guide-modal-content">
+                    <div class="guide-header">
+                        <h2>튜토리얼 & 규칙 상세</h2>
+                        <button class="btn btn-secondary" id="guide-close" onclick="game.closeGuide()">닫기</button>
+                    </div>
+
+                    <div class="guide-tabs">
+                        <button class="btn guide-tab active" id="guide-tab-tutorial" onclick="game.selectGuideTab('tutorial')">튜토리얼</button>
+                        <button class="btn guide-tab" id="guide-tab-rules" onclick="game.selectGuideTab('rules')">규칙 상세</button>
+                    </div>
+
+                    <div class="guide-panel active" id="guide-tutorial-panel">
+                        <div class="guide-step-card">
+                            <div class="guide-step-header">
+                                <h3 id="guide-step-title">1. 게임 목표</h3>
+                                <span class="guide-step-emoji" id="guide-step-emoji">🏆</span>
+                            </div>
+                            <p class="guide-step-summary" id="guide-step-summary"></p>
+                            <ul class="guide-step-points" id="guide-step-points"></ul>
+                        </div>
+                        <div class="guide-step-controls">
+                            <button class="btn btn-secondary" id="guide-prev" onclick="game.guidePrev()">이전</button>
+                            <div class="guide-dots" id="guide-dots"></div>
+                            <button class="btn btn-primary" id="guide-next" onclick="game.guideNext()">다음</button>
+                        </div>
+                    </div>
+
+                    <div class="guide-panel" id="guide-rules-panel">
+                        <div class="guide-rules-current">
+                            <strong>현재 단계:</strong> <span id="guide-current-phase-label">배치 단계</span>
+                        </div>
+                        <div class="guide-rules-list" id="guide-rules-list"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <script>
@@ -866,11 +1117,20 @@
                     this.placementPending = false; // Lock to prevent multiple clicks during placement
                     this.addTokenPending = false;  // Lock to prevent multiple clicks during add_token
 
+                    this.guideStorageKey = 'memoryFeastOnlineGuideStateV1';
+                    this.guideStep = 1;
+                    this.guideTab = 'tutorial';
+                    this.currentPhase = 'placement';
+                    this.guideContent = this.createGuideContent();
+                    this.guideState = this.loadGuideState();
+
+                    this.setupGuideUI();
+
                     this.connect();
                 }
 
                 generateSessionId() {
-                    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
                         const r = Math.random() * 16 | 0;
                         const v = c === 'x' ? r : (r & 0x3 | 0x8);
                         return v.toString(16);
@@ -883,6 +1143,130 @@
                     const exponentialDelay = Math.min(maxDelay, baseDelay * (2 ** this.reconnectAttempts));
                     const jitter = Math.floor(Math.random() * 300);
                     return exponentialDelay + jitter;
+                }
+
+                createGuideContent() {
+                    return {
+                        tutorialSteps: [
+                            {
+                                title: '1. 게임 목표',
+                                emoji: '🏆',
+                                summary: '내 게임 토큰을 먼저 모두 소진하면 승리합니다.',
+                                points: [
+                                    '토큰을 줄이려면 매칭에 성공해야 합니다.',
+                                    '실패하거나 시간 초과 시 페널티 토큰이 늘어납니다.'
+                                ]
+                            },
+                            {
+                                title: '2. 배치 단계',
+                                emoji: '🍽️',
+                                summary: '각 라운드 수만큼 토큰을 빈 접시에 번갈아 배치합니다.',
+                                points: [
+                                    '라운드가 올라갈수록 배치 토큰 수가 커집니다.',
+                                    '상대가 어디에 몇 개를 놓았는지 기억하는 것이 핵심입니다.'
+                                ]
+                            },
+                            {
+                                title: '3. 매칭 단계',
+                                emoji: '⏱️',
+                                summary: '60초 안에 같은 토큰 수의 접시 2개를 선택합니다.',
+                                points: [
+                                    '두 접시를 선택한 뒤 선택 확인을 누릅니다.',
+                                    '성공하면 토큰을 추가할 접시를 한 개 고를 수 있습니다.'
+                                ]
+                            },
+                            {
+                                title: '4. 성공/실패 처리',
+                                emoji: '✅',
+                                summary: '성공하면 토큰 -1, 실패/시간초과는 페널티를 받습니다.',
+                                points: [
+                                    '매치 성공: 매치된 접시 중 한 곳에 토큰 1개 추가, 내 토큰 -1',
+                                    '매치 실패: 내 토큰 +1',
+                                    '시간 초과: 내 토큰 +2'
+                                ]
+                            },
+                            {
+                                title: '5. 실전 팁',
+                                emoji: '🧠',
+                                summary: '단계별 흐름과 상대 행동을 함께 기억하면 승률이 오릅니다.',
+                                points: [
+                                    '상대가 집중해서 고른 접시는 힌트가 될 수 있습니다.',
+                                    '토큰 추가 위치 선택은 다음 턴 매칭 확률에 영향을 줍니다.'
+                                ]
+                            }
+                        ],
+                        rules: [
+                            {
+                                phase: 'placement',
+                                label: '배치 단계',
+                                details: [
+                                    '현재 라운드 수와 같은 개수의 토큰을 빈 접시에 배치합니다.',
+                                    '모든 플레이어가 한 번씩 배치하면 다음 라운드로 넘어갑니다.'
+                                ]
+                            },
+                            {
+                                phase: 'matching',
+                                label: '매칭 단계',
+                                details: [
+                                    '같은 토큰 수를 가진 접시 2개를 선택해 매칭을 시도합니다.',
+                                    '제한시간 60초 안에 선택해야 하며, 초과 시 페널티가 부여됩니다.'
+                                ]
+                            },
+                            {
+                                phase: 'add_token',
+                                label: '토큰 추가 단계',
+                                details: [
+                                    '매치 성공 시 매치된 접시 중 하나를 골라 토큰 1개를 추가합니다.',
+                                    '토큰을 추가한 플레이어의 보유 토큰은 1 감소합니다.'
+                                ]
+                            }
+                        ],
+                        phaseHints: {
+                            placement: {
+                                label: '배치 단계',
+                                message: '빈 접시를 선택해 현재 라운드 수만큼 토큰을 배치하세요. 상대의 배치를 기억해 두면 이후 매칭에 유리합니다.'
+                            },
+                            matching: {
+                                label: '매칭 단계',
+                                message: '같은 토큰 수의 접시 2개를 선택해야 합니다. 시간 제한(60초) 안에 선택 확인까지 완료하세요.'
+                            },
+                            add_token: {
+                                label: '토큰 추가 단계',
+                                message: '성공한 매칭 쌍 중 한 접시를 선택해 토큰을 추가하세요. 추가 후에는 내 토큰 수가 1 줄어듭니다.'
+                            }
+                        }
+                    };
+                }
+
+                loadGuideState() {
+                    const fallback = { completed: false, lastTab: 'tutorial', lastStep: 1 };
+                    const raw = localStorage.getItem(this.guideStorageKey);
+                    if (!raw) {
+                        return fallback;
+                    }
+
+                    try {
+                        const parsed = JSON.parse(raw);
+                        return {
+                            completed: Boolean(parsed.completed),
+                            lastTab: parsed.lastTab === 'rules' ? 'rules' : 'tutorial',
+                            lastStep: Number.isInteger(parsed.lastStep) ? parsed.lastStep : 1
+                        };
+                    } catch {
+                        return fallback;
+                    }
+                }
+
+                saveGuideState() {
+                    localStorage.setItem(this.guideStorageKey, JSON.stringify(this.guideState));
+                }
+
+                setupGuideUI() {
+                    this.guideTab = this.guideState.lastTab;
+                    this.guideStep = Math.max(1, Math.min(this.guideState.lastStep, this.guideContent.tutorialSteps.length));
+                    this.renderRulesList();
+                    this.updateGuideUI();
+                    this.updatePhaseHelp('placement');
                 }
 
                 connect() {
@@ -933,7 +1317,7 @@
 
                 updateConnectionStatus(status) {
                     const el = document.getElementById('connection-status');
-                    el.className = 'connection-status ' + status;
+                    el.className = `connection-status ${status}`;
                     const labels = {
                         connected: '연결됨',
                         disconnected: '연결 끊김',
@@ -1026,6 +1410,7 @@
                     this.placementPending = false; // Reset click lock on state update
                     this.addTokenPending = false;  // Reset add-token lock on state update
                     this.showScreen('game');
+                    this.updatePhaseHelp(payload.phase);
                     this.renderGameState();
                 }
 
@@ -1063,6 +1448,132 @@
                     this.playerIndex = payload.playerIndex;
                     this.showMessage('재접속에 성공했습니다!', 'success');
                     // Game state will follow automatically from server
+                }
+
+                openGuide(tab = 'tutorial') {
+                    if (tab === 'rules' || tab === 'tutorial') {
+                        this.guideTab = tab;
+                    }
+
+                    if (!this.guideState.completed) {
+                        this.guideStep = 1;
+                    }
+
+                    this.updateGuideUI();
+                    document.getElementById('guide-modal').classList.add('show');
+                }
+
+                closeGuide() {
+                    this.guideState.lastTab = this.guideTab;
+                    this.guideState.lastStep = this.guideStep;
+                    this.saveGuideState();
+                    document.getElementById('guide-modal').classList.remove('show');
+                }
+
+                selectGuideTab(tab) {
+                    this.guideTab = tab === 'rules' ? 'rules' : 'tutorial';
+                    this.guideState.lastTab = this.guideTab;
+                    this.saveGuideState();
+                    this.updateGuideUI();
+                }
+
+                guideNext() {
+                    const maxStep = this.guideContent.tutorialSteps.length;
+                    if (this.guideStep < maxStep) {
+                        this.guideStep += 1;
+                        this.guideState.lastStep = this.guideStep;
+                        this.saveGuideState();
+                        this.updateGuideUI();
+                        return;
+                    }
+
+                    this.guideState.completed = true;
+                    this.guideState.lastStep = maxStep;
+                    this.guideState.lastTab = 'tutorial';
+                    this.saveGuideState();
+                    this.closeGuide();
+                }
+
+                guidePrev() {
+                    if (this.guideStep <= 1) {
+                        return;
+                    }
+                    this.guideStep -= 1;
+                    this.guideState.lastStep = this.guideStep;
+                    this.saveGuideState();
+                    this.updateGuideUI();
+                }
+
+                updateGuideUI() {
+                    const tutorialTab = document.getElementById('guide-tab-tutorial');
+                    const rulesTab = document.getElementById('guide-tab-rules');
+                    const tutorialPanel = document.getElementById('guide-tutorial-panel');
+                    const rulesPanel = document.getElementById('guide-rules-panel');
+
+                    tutorialTab.classList.toggle('active', this.guideTab === 'tutorial');
+                    rulesTab.classList.toggle('active', this.guideTab === 'rules');
+                    tutorialPanel.classList.toggle('active', this.guideTab === 'tutorial');
+                    rulesPanel.classList.toggle('active', this.guideTab === 'rules');
+
+                    this.renderTutorialStep();
+                    this.highlightCurrentPhaseRule();
+                }
+
+                renderTutorialStep() {
+                    const steps = this.guideContent.tutorialSteps;
+                    const currentStep = steps[this.guideStep - 1];
+                    if (!currentStep) {
+                        return;
+                    }
+
+                    document.getElementById('guide-step-title').textContent = currentStep.title;
+                    document.getElementById('guide-step-emoji').textContent = currentStep.emoji;
+                    document.getElementById('guide-step-summary').textContent = currentStep.summary;
+
+                    const pointsEl = document.getElementById('guide-step-points');
+                    pointsEl.innerHTML = currentStep.points.map((point) => `<li>${point}</li>`).join('');
+
+                    const dotsEl = document.getElementById('guide-dots');
+                    dotsEl.innerHTML = steps
+                        .map((_, index) => `<div class="guide-dot ${index + 1 === this.guideStep ? 'active' : ''}"></div>`)
+                        .join('');
+
+                    const prevBtn = document.getElementById('guide-prev');
+                    const nextBtn = document.getElementById('guide-next');
+
+                    prevBtn.style.visibility = this.guideStep === 1 ? 'hidden' : 'visible';
+                    nextBtn.textContent = this.guideStep < steps.length ? '다음' : '완료하고 닫기';
+                }
+
+                renderRulesList() {
+                    const listEl = document.getElementById('guide-rules-list');
+                    listEl.innerHTML = this.guideContent.rules
+                        .map((rule) => {
+                            const details = rule.details.map((item) => `<li>${item}</li>`).join('');
+                            return `<div class="guide-rule-item" data-phase="${rule.phase}"><h4>${rule.label}</h4><ul>${details}</ul></div>`;
+                        })
+                        .join('');
+                }
+
+                updatePhaseHelp(phase) {
+                    const normalizedPhase = phase === 'add_token' ? 'add_token' : (phase === 'matching' ? 'matching' : 'placement');
+                    this.currentPhase = normalizedPhase;
+
+                    const hint = this.guideContent.phaseHints[normalizedPhase];
+                    if (hint) {
+                        document.getElementById('phase-help-title').textContent = `${hint.label} 도움말`;
+                        document.getElementById('phase-help-text').textContent = hint.message;
+                        document.getElementById('guide-current-phase-label').textContent = hint.label;
+                    }
+
+                    this.highlightCurrentPhaseRule();
+                }
+
+                highlightCurrentPhaseRule() {
+                    document.querySelectorAll('.guide-rule-item').forEach((item) => {
+                        const isActive = item.dataset.phase === this.currentPhase;
+                        item.classList.toggle('active-phase', isActive);
+                    });
                 }
 
                 renderGameState() {
@@ -1161,7 +1672,7 @@
                         }
 
                         // Selection styling (my selections)
-                        if (state.selectedPlates && state.selectedPlates.includes(index)) {
+                        if (state.selectedPlates?.includes(index)) {
                             if (state.selectedPlates[0] === index) {
                                 plateEl.classList.add('selected-first');
                             } else {
@@ -1170,7 +1681,7 @@
                         }
 
                         // Opponent selection styling
-                        if (state.opponentSelectedPlates && state.opponentSelectedPlates.includes(index)) {
+                        if (state.opponentSelectedPlates?.includes(index)) {
                             if (state.opponentSelectedPlates[0] === index) {
                                 plateEl.classList.add('opponent-selected-first');
                             } else {
@@ -1179,7 +1690,7 @@
                         }
 
                         // Matched plates styling
-                        if (state.matchedPlates && state.matchedPlates.includes(index)) {
+                        if (state.matchedPlates?.includes(index)) {
                             plateEl.classList.add('selected');
                         }
 
