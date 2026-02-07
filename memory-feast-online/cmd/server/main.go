@@ -644,6 +644,7 @@ func (s *Server) endGame(room *game.Room, winner int, reason string) {
 	room.BroadcastMessage(endMsg)
 
 	s.resetPlayersToLobby(room)
+	s.removeRoom(room.ID)
 }
 
 func (s *Server) endGameNoMatches(room *game.Room) {
@@ -680,6 +681,7 @@ func (s *Server) endGameNoMatches(room *game.Room) {
 	room.BroadcastMessage(endMsg)
 
 	s.resetPlayersToLobby(room)
+	s.removeRoom(room.ID)
 }
 
 func (s *Server) sendError(client *ws.Client, code, message string) {

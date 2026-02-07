@@ -39,3 +39,39 @@ func TestHandleLeaveRoomRemovesWaitingPlayerFromQueue(t *testing.T) {
 		t.Fatalf("expected client state lobby, got %s", got)
 	}
 }
+
+func TestEndGameRemovesRoom(t *testing.T) {
+	s := NewServer(store.NewMemoryStore())
+	room := game.NewRoom(4)
+	room.Hub = s.hub
+	room.Players[0] = game.NewPlayer("p1", "Alice", "s1", nil)
+	room.Players[1] = game.NewPlayer("p2", "Bob", "s2", nil)
+
+	s.roomsMu.Lock()
+	s.rooms[room.ID] = room
+	s.roomsMu.Unlock()
+
+	s.endGame(room, 0, "tokens")
+
+	if got := s.getRoom(room.ID); got != nil {
+		t.Fatalf("expected room to be removed after endGame")
+	}
+}
+
+func TestEndGameNoMatchesRemovesRoom(t *testing.T) {
+	s := NewServer(store.NewMemoryStore())
+	room := game.NewRoom(4)
+	room.Hub = s.hub
+	room.Players[0] = game.NewPlayer("p1", "Alice", "s1", nil)
+	room.Players[1] = game.NewPlayer("p2", "Bob", "s2", nil)
+
+	s.roomsMu.Lock()
+	s.rooms[room.ID] = room
+	s.roomsMu.Unlock()
+
+	s.endGameNoMatches(room)
+
+	if got := s.getRoom(room.ID); got != nil {
+		t.Fatalf("expected room to be removed after endGameNoMatches")
+	}
+}
