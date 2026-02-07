@@ -164,18 +164,36 @@ func (c *Client) IsClosed() bool {
 // WritePump pumps messages from the Send channel to the websocket connection
 // All writes are serialized via writeMu
 func (c *Client) WritePump() {
+	ticker := time.NewTicker(pingPeriod)
 	defer func() {
+		ticker.Stop()
 		c.Conn.Close()
 	}()
 
-	for message := range c.Send {
-		c.writeMu.Lock()
-		c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-		err := c.Conn.WriteMessage(websocket.TextMessage, message)
-		c.writeMu.Unlock()
-		if err != nil {
-			log.Printf("Error writing to client %s: %v", c.SessionID, err)
-			return
+	for {
+		select {
+		case message, ok := <-c.Send:
+			c.writeMu.Lock()
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				c.writeMu.Unlock()
+				return
+			}
+			err := c.Conn.WriteMessage(websocket.TextMessage, message)
+			c.writeMu.Unlock()
+			if err != nil {
+				log.Printf("Error writing to client %s: %v", c.SessionID, err)
+				return
+			}
+		case <-ticker.C:
+			c.writeMu.Lock()
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			err := c.Conn.WriteMessage(websocket.PingMessage, nil)
+			c.writeMu.Unlock()
+			if err != nil {
+				return
+			}
 		}
 	}
 }

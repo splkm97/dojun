@@ -374,8 +374,7 @@ func (s *Server) handlePlaceToken(client *ws.Client, msg *ws.Message) {
 
 	// Wait briefly then advance turn
 	time.AfterFunc(1500*time.Millisecond, func() {
-		// Cover the plate
-		room.State.Plates[payload.Index].Covered = true
+		room.CoverPlate(payload.Index)
 
 		if room.AdvancePlacement() {
 			// Placement complete, start matching
@@ -544,6 +543,7 @@ func (s *Server) handleReconnect(client *ws.Client, msg *ws.Message) {
 func (s *Server) handleLeaveRoom(client *ws.Client, msg *ws.Message) {
 	room, playerIndex := s.findPlayerRoom(client.SessionID)
 	if room == nil {
+		s.matchmaker.LeaveQueue(client.SessionID)
 		// If not in a room, just reset to lobby
 		client.SetState(ws.ClientLobby)
 		return
@@ -582,7 +582,8 @@ func (s *Server) startMatchingTimer(room *game.Room) {
 		},
 		func() {
 			// Timeout
-			currentTurn := room.State.CurrentTurn
+			snapshot := room.GetGameState()
+			currentTurn := snapshot.CurrentTurn
 			room.HandleTimeout(currentTurn)
 
 			state := room.GetGameState()

@@ -192,6 +192,19 @@ func (r *Room) AdvancePlacement() bool {
 	return r.State.NextPlacementTurn()
 }
 
+// CoverPlate safely covers a plate by index.
+func (r *Room) CoverPlate(index int) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if index < 0 || index >= len(r.State.Plates) {
+		return false
+	}
+
+	r.State.Plates[index].Covered = true
+	return true
+}
+
 // HandleSelectPlate handles plate selection during matching
 func (r *Room) HandleSelectPlate(playerIndex, plateIndex int) bool {
 	r.mu.Lock()
