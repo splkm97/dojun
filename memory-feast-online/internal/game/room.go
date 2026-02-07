@@ -235,6 +235,9 @@ func (r *Room) HandleConfirmMatch(playerIndex int) (bool, bool, int, int) {
 	if len(r.State.SelectedPlates) != 2 {
 		return false, false, 0, 0
 	}
+	if r.confirmPending {
+		return false, false, 0, 0
+	}
 
 	r.confirmPending = true // Lock selections during reveal
 	matched, t1, t2 := r.State.ConfirmMatch()
@@ -375,12 +378,15 @@ func (r *Room) StartTimer(onTick func(timeLeft int), onTimeout func()) {
 	r.timerDone = make(chan struct{})
 
 	r.timerTicker = time.NewTicker(1 * time.Second)
-	go func() {
+	timerDone := r.timerDone
+	timerTick := r.timerTicker.C
+
+	go func(done <-chan struct{}, tick <-chan time.Time) {
 		for {
 			select {
-			case <-r.timerDone:
+			case <-done:
 				return
-			case <-r.timerTicker.C:
+			case <-tick:
 				r.mu.Lock()
 				r.State.TimeLeft--
 				timeLeft := r.State.TimeLeft
@@ -399,7 +405,7 @@ func (r *Room) StartTimer(onTick func(timeLeft int), onTimeout func()) {
 				}
 			}
 		}
-	}()
+	}(timerDone, timerTick)
 }
 
 // StopTimer stops the current timer

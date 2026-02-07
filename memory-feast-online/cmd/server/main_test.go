@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/gorilla/websocket"
@@ -231,12 +230,7 @@ func TestIsAllowedWebSocketOriginUsesConfiguredList(t *testing.T) {
 }
 
 func TestIsAllowedWebSocketOriginWildcardRejected(t *testing.T) {
-	if err := os.Setenv("ALLOWED_WS_ORIGINS", "*"); err != nil {
-		t.Fatalf("failed to set ALLOWED_WS_ORIGINS: %v", err)
-	}
-	t.Cleanup(func() {
-		_ = os.Unsetenv("ALLOWED_WS_ORIGINS")
-	})
+	t.Setenv("ALLOWED_WS_ORIGINS", "*")
 
 	req := httptest.NewRequest("GET", "/ws", nil)
 	req.Header.Set("Origin", "https://app.example.com")

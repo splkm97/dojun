@@ -11,11 +11,92 @@
                 box-sizing: border-box;
             }
 
+            :root {
+                --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                --text-color: #ffffff;
+                --title-color: #ffd700;
+                --panel-bg: rgba(255, 255, 255, 0.1);
+                --phase-bg: rgba(0, 0, 0, 0.3);
+                --modal-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                --modal-border: #ffd700;
+                --btn-primary-bg: linear-gradient(145deg, #ffd700, #ffb700);
+                --btn-primary-hover-bg: linear-gradient(145deg, #ffb700, #ffd700);
+                --btn-primary-text: #1a1a2e;
+                --btn-secondary-bg: linear-gradient(145deg, #3498db, #2980b9);
+                --btn-secondary-hover-bg: linear-gradient(145deg, #2980b9, #3498db);
+                --btn-danger-bg: linear-gradient(145deg, #e74c3c, #c0392b);
+                --btn-danger-hover-bg: linear-gradient(145deg, #c0392b, #e74c3c);
+            }
+
+            body[data-theme='forest'] {
+                --bg-gradient: linear-gradient(135deg, #0f2a1d 0%, #1f5a3f 100%);
+                --title-color: #c9f2a6;
+                --panel-bg: rgba(220, 255, 234, 0.12);
+                --phase-bg: rgba(8, 32, 23, 0.45);
+                --modal-bg: linear-gradient(135deg, #123626 0%, #1e4f39 100%);
+                --modal-border: #b9e97f;
+                --btn-primary-bg: linear-gradient(145deg, #b9e97f, #8ac95d);
+                --btn-primary-hover-bg: linear-gradient(145deg, #8ac95d, #b9e97f);
+                --btn-primary-text: #173021;
+                --btn-secondary-bg: linear-gradient(145deg, #4dbd83, #2f8f62);
+                --btn-secondary-hover-bg: linear-gradient(145deg, #2f8f62, #4dbd83);
+                --btn-danger-bg: linear-gradient(145deg, #d36f5e, #b44f41);
+                --btn-danger-hover-bg: linear-gradient(145deg, #b44f41, #d36f5e);
+            }
+
+            body[data-theme='sunset'] {
+                --bg-gradient: linear-gradient(135deg, #3b1f2f 0%, #7a3b2b 100%);
+                --title-color: #ffd0a8;
+                --panel-bg: rgba(255, 218, 184, 0.12);
+                --phase-bg: rgba(43, 16, 22, 0.45);
+                --modal-bg: linear-gradient(135deg, #472131 0%, #7e3f2f 100%);
+                --modal-border: #ffbf87;
+                --btn-primary-bg: linear-gradient(145deg, #ffbf87, #f29b63);
+                --btn-primary-hover-bg: linear-gradient(145deg, #f29b63, #ffbf87);
+                --btn-primary-text: #3d1f14;
+                --btn-secondary-bg: linear-gradient(145deg, #e38b72, #c75f4d);
+                --btn-secondary-hover-bg: linear-gradient(145deg, #c75f4d, #e38b72);
+                --btn-danger-bg: linear-gradient(145deg, #d3544a, #ad3b33);
+                --btn-danger-hover-bg: linear-gradient(145deg, #ad3b33, #d3544a);
+            }
+
+            body[data-theme='slate'] {
+                --bg-gradient: linear-gradient(135deg, #1e2228 0%, #3a414d 100%);
+                --title-color: #f2f5f8;
+                --panel-bg: rgba(241, 245, 249, 0.1);
+                --phase-bg: rgba(15, 17, 21, 0.45);
+                --modal-bg: linear-gradient(135deg, #21262d 0%, #374151 100%);
+                --modal-border: #d6dde5;
+                --btn-primary-bg: linear-gradient(145deg, #d6dde5, #bcc7d3);
+                --btn-primary-hover-bg: linear-gradient(145deg, #bcc7d3, #d6dde5);
+                --btn-primary-text: #1f2730;
+                --btn-secondary-bg: linear-gradient(145deg, #7b8ca1, #5f7188);
+                --btn-secondary-hover-bg: linear-gradient(145deg, #5f7188, #7b8ca1);
+                --btn-danger-bg: linear-gradient(145deg, #cc7a7a, #a75d5d);
+                --btn-danger-hover-bg: linear-gradient(145deg, #a75d5d, #cc7a7a);
+            }
+
+            body[data-theme='ocean'] {
+                --bg-gradient: linear-gradient(135deg, #10283b 0%, #124e68 100%);
+                --title-color: #a8e1ff;
+                --panel-bg: rgba(210, 240, 255, 0.12);
+                --phase-bg: rgba(8, 28, 43, 0.45);
+                --modal-bg: linear-gradient(135deg, #10344b 0%, #175872 100%);
+                --modal-border: #88d4f2;
+                --btn-primary-bg: linear-gradient(145deg, #88d4f2, #62b7de);
+                --btn-primary-hover-bg: linear-gradient(145deg, #62b7de, #88d4f2);
+                --btn-primary-text: #123647;
+                --btn-secondary-bg: linear-gradient(145deg, #5fa7d9, #3d83b4);
+                --btn-secondary-hover-bg: linear-gradient(145deg, #3d83b4, #5fa7d9);
+                --btn-danger-bg: linear-gradient(145deg, #e07a7a, #bb5a5a);
+                --btn-danger-hover-bg: linear-gradient(145deg, #bb5a5a, #e07a7a);
+            }
+
             body {
                 font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                background: var(--bg-gradient);
                 min-height: 100vh;
-                color: #fff;
+                color: var(--text-color);
                 -webkit-user-select: none;
                 -moz-user-select: none;
                 -ms-user-select: none;
@@ -33,7 +114,7 @@
                 text-align: center;
                 font-size: 2.5rem;
                 margin-bottom: 10px;
-                color: #ffd700;
+                color: var(--title-color);
                 text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
             }
 
@@ -48,7 +129,7 @@
                 align-items: center;
                 margin-bottom: 10px;
                 padding: 8px 15px;
-                background: rgba(255, 255, 255, 0.1);
+                background: var(--panel-bg);
                 border-radius: 10px;
             }
 
@@ -61,7 +142,7 @@
 
             .player-info.active {
                 background: rgba(255, 215, 0, 0.3);
-                border: 2px solid #ffd700;
+                border: 2px solid var(--title-color);
             }
 
             .player-info.disconnected {
@@ -81,12 +162,12 @@
             .phase-info {
                 text-align: center;
                 padding: 5px 20px;
-                background: rgba(0, 0, 0, 0.3);
+                background: var(--phase-bg);
                 border-radius: 8px;
             }
 
             .phase-info h2 {
-                color: #ffd700;
+                color: var(--title-color);
                 margin-bottom: 3px;
                 font-size: 1.1rem;
             }
@@ -271,22 +352,22 @@
             }
 
             .btn-primary {
-                background: linear-gradient(145deg, #ffd700, #ffb700);
-                color: #1a1a2e;
+                background: var(--btn-primary-bg);
+                color: var(--btn-primary-text);
             }
 
             .btn-primary:hover {
-                background: linear-gradient(145deg, #ffb700, #ffd700);
+                background: var(--btn-primary-hover-bg);
                 transform: translateY(-2px);
             }
 
             .btn-secondary {
-                background: linear-gradient(145deg, #3498db, #2980b9);
+                background: var(--btn-secondary-bg);
                 color: #fff;
             }
 
             .btn-secondary:hover {
-                background: linear-gradient(145deg, #2980b9, #3498db);
+                background: var(--btn-secondary-hover-bg);
             }
 
             .btn:disabled {
@@ -296,18 +377,114 @@
             }
 
             .btn-danger {
-                background: linear-gradient(145deg, #e74c3c, #c0392b);
+                background: var(--btn-danger-bg);
                 color: #fff;
             }
 
             .btn-danger:hover {
-                background: linear-gradient(145deg, #c0392b, #e74c3c);
+                background: var(--btn-danger-hover-bg);
+            }
+
+            .theme-toggle-btn {
+                position: relative;
+                width: 156px;
+                height: 34px;
+                padding: 0 34px 0 14px;
+                font-size: 0.85rem;
+                font-weight: 700;
+                letter-spacing: 0.01em;
+                border-radius: 20px;
+                border: 1px solid rgba(255, 255, 255, 0.42);
+                background: var(--btn-secondary-bg);
+                color: #fff;
+                cursor: pointer;
+                line-height: 1;
+                box-shadow: 0 6px 14px rgba(0, 0, 0, 0.24);
+                transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+                text-align: center;
+            }
+
+            .theme-toggle-btn:hover {
+                transform: translateY(-1px);
+                border-color: rgba(255, 255, 255, 0.62);
+                box-shadow: 0 9px 18px rgba(0, 0, 0, 0.28);
+            }
+
+            .theme-toggle-btn:focus {
+                outline: 2px solid rgba(255, 255, 255, 0.5);
+                outline-offset: 2px;
+            }
+
+            .theme-select-wrap {
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                z-index: 120;
+            }
+
+            .theme-select-wrap::after {
+                content: "▾";
+                position: absolute;
+                right: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: rgba(255, 255, 255, 0.9);
+                pointer-events: none;
+                font-size: 0.78rem;
+                transition: transform 0.2s ease;
+            }
+
+            .theme-select-wrap.open::after {
+                transform: translateY(-50%) rotate(180deg);
+            }
+
+            .theme-menu {
+                display: none;
+                position: absolute;
+                top: calc(100% + 8px);
+                left: 0;
+                width: 156px;
+                padding: 8px;
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.28);
+                background: rgba(14, 32, 46, 0.96);
+                box-shadow: 0 14px 26px rgba(0, 0, 0, 0.35);
+                backdrop-filter: blur(6px);
+            }
+
+            .theme-select-wrap.open .theme-menu {
+                display: grid;
+                gap: 6px;
+            }
+
+            .theme-option {
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.06);
+                color: #f3fbff;
+                padding: 8px 10px;
+                font-size: 0.84rem;
+                font-weight: 600;
+                text-align: center;
+                cursor: pointer;
+                width: 100%;
+            }
+
+            .theme-option:hover {
+                border-color: rgba(255, 255, 255, 0.5);
+                background: rgba(255, 255, 255, 0.14);
+            }
+
+            .theme-option.active {
+                border-color: rgba(255, 215, 0, 0.65);
+                background: rgba(255, 215, 0, 0.2);
+                color: #fff8d1;
             }
 
             .leave-game-btn {
                 position: fixed;
                 bottom: 20px;
-                left: 20px;
+                right: 20px;
                 font-size: 0.9rem;
                 padding: 8px 16px;
                 z-index: 100;
@@ -320,28 +497,51 @@
                 margin-top: 20px;
             }
 
+            #message-area {
+                position: fixed;
+                right: 16px;
+                top: 80px;
+                z-index: 900;
+                pointer-events: none;
+                width: min(420px, calc(100vw - 24px));
+            }
+
             .message {
-                text-align: center;
-                padding: 10px;
-                margin: 8px auto;
-                border-radius: 8px;
-                font-size: 1rem;
-                max-width: 600px;
+                text-align: left;
+                padding: 12px 14px;
+                margin: 0 0 8px auto;
+                border-radius: 10px;
+                font-size: 0.95rem;
+                line-height: 1.45;
+                max-width: 100%;
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+                animation: toast-slide-in 0.2s ease-out;
             }
 
             .message.success {
-                background: rgba(46, 204, 113, 0.3);
+                background: rgba(46, 204, 113, 0.8);
                 border: 2px solid #2ecc71;
             }
 
             .message.fail {
-                background: rgba(231, 76, 60, 0.3);
+                background: rgba(231, 76, 60, 0.8);
                 border: 2px solid #e74c3c;
             }
 
             .message.info {
-                background: rgba(52, 152, 219, 0.3);
+                background: rgba(52, 152, 219, 0.8);
                 border: 2px solid #3498db;
+            }
+
+            @keyframes toast-slide-in {
+                from {
+                    opacity: 0;
+                    transform: translateY(-6px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
             }
 
             .modal {
@@ -362,11 +562,11 @@
             }
 
             .modal-content {
-                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                background: var(--modal-bg);
                 padding: 40px;
                 border-radius: 15px;
                 text-align: center;
-                border: 3px solid #ffd700;
+                border: 3px solid var(--modal-border);
                 max-width: 500px;
             }
 
@@ -530,12 +730,17 @@
                 position: fixed;
                 top: 10px;
                 right: 10px;
-                padding: 8px 15px;
+                height: 34px;
+                padding: 0 15px;
                 border-radius: 20px;
                 font-size: 0.85rem;
                 display: flex;
                 align-items: center;
                 gap: 8px;
+            }
+
+            .connection-status span {
+                line-height: 1;
             }
 
             .connection-status.connected {
@@ -635,13 +840,14 @@
             }
 
             .lobby-rule-actions {
-                display: flex;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
                 gap: 10px;
                 margin-top: 15px;
             }
 
             .lobby-rule-actions .btn {
-                flex: 1;
+                width: 100%;
             }
 
             .phase-help-panel {
@@ -667,16 +873,17 @@
 
             .guide-open-game-btn {
                 position: fixed;
-                bottom: 20px;
-                left: 110px;
+                bottom: 70px;
+                right: 20px;
                 font-size: 0.9rem;
                 padding: 8px 16px;
                 z-index: 100;
             }
 
             .guide-modal-content {
-                max-width: 760px;
+                width: 760px;
                 max-height: 85vh;
+                min-height: 520px;
                 overflow-y: auto;
                 text-align: left;
                 padding: 24px;
@@ -704,11 +911,13 @@
             .guide-tab {
                 border: 1px solid rgba(255, 255, 255, 0.25);
                 background: rgba(255, 255, 255, 0.06);
+                color: #f3e7b0;
             }
 
             .guide-tab.active {
                 border-color: #ffd700;
                 box-shadow: inset 0 0 0 1px rgba(255, 215, 0, 0.4);
+                color: #ffe58a;
             }
 
             .guide-panel {
@@ -719,11 +928,24 @@
                 display: block;
             }
 
+            #guide-tutorial-panel.guide-panel.active {
+                display: flex;
+                flex-direction: column;
+                min-height: 430px;
+            }
+
+            #guide-rules-panel.guide-panel.active {
+                display: flex;
+                flex-direction: column;
+                min-height: 430px;
+            }
+
             .guide-step-card {
                 background: rgba(255, 255, 255, 0.08);
                 border: 1px solid rgba(255, 215, 0, 0.25);
                 border-radius: 12px;
                 padding: 16px;
+                flex: 1;
             }
 
             .guide-step-header {
@@ -750,16 +972,30 @@
             }
 
             .guide-step-controls {
-                display: flex;
-                justify-content: space-between;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
                 align-items: center;
                 gap: 10px;
-                margin-top: 14px;
+                margin-top: auto;
+                padding-top: 12px;
+            }
+
+            #guide-prev {
+                grid-column: 1;
+                grid-row: 2;
+            }
+
+            #guide-next {
+                grid-column: 2;
+                grid-row: 2;
             }
 
             .guide-dots {
                 display: flex;
                 gap: 6px;
+                grid-column: 1 / -1;
+                grid-row: 1;
+                justify-content: center;
             }
 
             .guide-dot {
@@ -784,6 +1020,8 @@
             .guide-rules-list {
                 display: grid;
                 gap: 10px;
+                align-content: start;
+                flex: 1;
             }
 
             .guide-rule-item {
@@ -825,18 +1063,30 @@
                 }
 
                 .game-info {
-                    flex-direction: column;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
                     gap: 10px;
                     padding: 10px;
+                    align-items: stretch;
+                }
+
+                .phase-info {
+                    order: 1;
+                    grid-column: 1 / -1;
+                    width: 100%;
                 }
 
                 .player-info {
                     width: 100%;
+                    min-width: 0;
                 }
 
-                .phase-info {
-                    order: -1;
-                    width: 100%;
+                #player0-info {
+                    order: 2;
+                }
+
+                #player1-info {
+                    order: 3;
                 }
 
                 .plates-container {
@@ -862,8 +1112,17 @@
                 }
 
                 .guide-open-game-btn {
-                    left: 20px;
+                    right: 20px;
                     bottom: 70px;
+                }
+
+                .theme-toggle-btn {
+                    width: 140px;
+                }
+
+                .theme-select-wrap {
+                    top: 10px;
+                    left: 8px;
                 }
 
                 .guide-modal-content {
@@ -872,13 +1131,33 @@
                 }
 
                 .guide-step-controls {
-                    flex-direction: column;
-                    align-items: stretch;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    align-items: center;
                 }
 
-                .guide-tabs,
-                .lobby-rule-actions {
-                    flex-direction: column;
+                .guide-step-controls .btn {
+                    width: 100%;
+                }
+
+                .guide-dots {
+                    grid-column: 1 / -1;
+                    justify-content: center;
+                }
+
+                .guide-tabs {
+                    flex-direction: row;
+                }
+
+                #message-area {
+                    right: 8px;
+                    left: 8px;
+                    top: 74px;
+                    width: auto;
+                }
+
+                .message {
+                    margin-left: 0;
                 }
             }
 
@@ -921,12 +1200,20 @@
                 <div class="status-dot"></div>
                 <span>연결 중...</span>
             </div>
+            <div class="theme-select-wrap">
+                <button class="theme-toggle-btn" id="theme-toggle" onclick="game.toggleThemeMenu()" aria-label="테마 선택">테마: 오션</button>
+                <div class="theme-menu" id="theme-menu">
+                    <button class="theme-option" data-theme="ocean" onclick="game.changeTheme('ocean')">오션</button>
+                    <button class="theme-option" data-theme="midnight" onclick="game.changeTheme('midnight')">미드나잇</button>
+                    <button class="theme-option" data-theme="forest" onclick="game.changeTheme('forest')">포레스트</button>
+                    <button class="theme-option" data-theme="sunset" onclick="game.changeTheme('sunset')">선셋</button>
+                    <button class="theme-option" data-theme="slate" onclick="game.changeTheme('slate')">슬레이트</button>
+                </div>
+            </div>
 
             <!-- Lobby Screen -->
             <div id="lobby-screen" class="lobby-screen">
                 <h1>기억의 만찬</h1>
-                <p class="subtitle">온라인 멀티플레이어</p>
-
                 <div class="lobby-panel">
                     <h3>게임 참여</h3>
                     <div class="input-group">
@@ -954,17 +1241,7 @@
                             <button class="btn btn-secondary" onclick="game.joinRoom()">참여</button>
                         </div>
                     </div>
-                </div>
 
-                <div class="lobby-panel" style="background: rgba(255, 255, 255, 0.05);">
-                    <h3>게임 규칙</h3>
-                    <ul style="text-align: left; margin-left: 20px; line-height: 1.8;">
-                        <li><strong>배치 단계:</strong> 번갈아가며 접시에 토큰 배치</li>
-                        <li><strong>매칭 단계:</strong> 60초 안에 같은 토큰 수의 접시 2개 찾기</li>
-                        <li><strong>성공:</strong> 토큰 1개를 접시에 추가 (보유 토큰 -1)</li>
-                        <li><strong>실패/시간초과:</strong> 페널티 토큰 받기</li>
-                        <li><strong>승리:</strong> 토큰을 먼저 소진한 플레이어 승리!</li>
-                    </ul>
                     <div class="lobby-rule-actions">
                         <button class="btn btn-secondary" id="open-guide-lobby" onclick="game.openGuide('tutorial')">튜토리얼 보기</button>
                         <button class="btn btn-primary" onclick="game.openGuide('rules')">규칙 자세히</button>
@@ -1010,6 +1287,8 @@
                     <div class="current-placement" id="current-placement"></div>
                 </div>
 
+                <div class="plates-container" id="plates-container"></div>
+
                 <div class="phase-help-panel" id="phase-help">
                     <h3 id="phase-help-title">배치 단계 도움말</h3>
                     <p id="phase-help-text">번갈아가며 빈 접시를 선택해 해당 라운드 수만큼 토큰을 배치하세요.</p>
@@ -1017,8 +1296,6 @@
                 </div>
 
                 <div id="message-area"></div>
-
-                <div class="plates-container" id="plates-container"></div>
 
                 <div class="add-token-selection" id="add-token-selection">
                     <p>토큰을 추가할 접시를 선택하세요:</p>
@@ -1118,6 +1395,15 @@
                     this.addTokenPending = false;  // Lock to prevent multiple clicks during add_token
 
                     this.guideStorageKey = 'memoryFeastOnlineGuideStateV1';
+                    this.themeStorageKey = 'memoryFeastOnlineThemeV1';
+                    this.themeOptions = [
+                        { key: 'midnight', label: '미드나잇' },
+                        { key: 'forest', label: '포레스트' },
+                        { key: 'sunset', label: '선셋' },
+                        { key: 'slate', label: '슬레이트' },
+                        { key: 'ocean', label: '오션' }
+                    ];
+                    this.currentTheme = this.loadTheme();
                     this.guideStep = 1;
                     this.guideTab = 'tutorial';
                     this.currentPhase = 'placement';
@@ -1125,8 +1411,76 @@
                     this.guideState = this.loadGuideState();
 
                     this.setupGuideUI();
+                    this.applyTheme(this.currentTheme);
+
+                    document.addEventListener('click', (event) => {
+                        const wrap = document.querySelector('.theme-select-wrap');
+                        if (!wrap) {
+                            return;
+                        }
+                        if (!wrap.contains(event.target)) {
+                            this.closeThemeMenu();
+                        }
+                    });
 
                     this.connect();
+                }
+
+                loadTheme() {
+                    const raw = localStorage.getItem(this.themeStorageKey);
+                    const fallback = 'ocean';
+                    if (!raw) {
+                        return fallback;
+                    }
+                    const exists = this.themeOptions.some((theme) => theme.key === raw);
+                    return exists ? raw : fallback;
+                }
+
+                applyTheme(themeKey) {
+                    this.currentTheme = themeKey;
+                    document.body.dataset.theme = themeKey === 'midnight' ? '' : themeKey;
+                    localStorage.setItem(this.themeStorageKey, themeKey);
+                    this.updateThemeButton();
+                }
+
+                changeTheme(themeKey) {
+                    this.applyTheme(themeKey);
+                    this.closeThemeMenu();
+                }
+
+                toggleThemeMenu() {
+                    const wrap = document.querySelector('.theme-select-wrap');
+                    if (!wrap) {
+                        return;
+                    }
+                    wrap.classList.toggle('open');
+                }
+
+                closeThemeMenu() {
+                    const wrap = document.querySelector('.theme-select-wrap');
+                    if (!wrap) {
+                        return;
+                    }
+                    wrap.classList.remove('open');
+                }
+
+                cycleTheme() {
+                    const currentIndex = this.themeOptions.findIndex((theme) => theme.key === this.currentTheme);
+                    const nextIndex = (currentIndex + 1) % this.themeOptions.length;
+                    this.applyTheme(this.themeOptions[nextIndex].key);
+                }
+
+                updateThemeButton() {
+                    const btn = document.getElementById('theme-toggle');
+                    if (!btn) {
+                        return;
+                    }
+                    const activeTheme = this.themeOptions.find((theme) => theme.key === this.currentTheme) || this.themeOptions[0];
+                    btn.textContent = `테마: ${activeTheme.label}`;
+
+                    document.querySelectorAll('.theme-option').forEach((option) => {
+                        option.classList.toggle('active', option.dataset.theme === this.currentTheme);
+                    });
                 }
 
                 generateSessionId() {

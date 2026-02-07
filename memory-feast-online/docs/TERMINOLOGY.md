@@ -99,6 +99,7 @@ const (
 |--------|---------|-------------|------|
 | 오류 | Error | `error` | 오류 발생 알림 (`{code, message}`) |
 | 대기열 참여됨 | Queue Joined | `queue_joined` | 랜덤 매칭 대기열 참여 확인 (`{position}`) |
+| 대기열 시간 초과 | Queue Timeout | `queue_timeout` | 대기열 제한 시간 초과 알림 (`{timeoutSeconds}`) |
 | 매칭됨 | Matched | `matched` | 상대와 매칭 완료 (`{roomId, roomCode?, playerIndex, opponent}`) |
 | 방 생성됨 | Room Created | `room_created` | 방 생성 완료 (`{roomId, roomCode}`) |
 | 방 참여됨 | Room Joined | `room_joined` | 방 참여 완료 (`{roomId, roomCode, playerIndex, opponent}`) |
@@ -241,8 +242,34 @@ const (
 |--------|---------|-----------|------|
 | 가이드 저장 키 | Guide Storage Key | `memoryFeastOnlineGuideStateV1` | 로컬스토리지에 가이드 진행 상태 저장 |
 | 가이드 탭 | Guide Tab | `tutorial` / `rules` | 모달의 튜토리얼/규칙 상세 탭 |
+| 가이드 상태 | Guide State | `completed`, `lastTab`, `lastStep` | 가이드 완료 여부/마지막 탭/마지막 단계 저장 필드 |
+| 튜토리얼 단계 목록 | Tutorial Steps | `tutorialSteps` | 5단계 튜토리얼 카드 데이터(제목/요약/포인트) |
+| 규칙 상세 목록 | Rules List | `rules` | 단계별 상세 규칙 목록(`placement`, `matching`, `add_token`) |
+| 단계 힌트 맵 | Phase Hints | `phaseHints` | 현재 게임 단계 기준 도움말 텍스트 매핑 |
 | 단계 도움말 | Phase Help | `phase-help` panel | 현재 게임 단계 기반 설명 표시 |
 | 메시지 타입 | Message Type | `success` / `fail` / `info` | 인게임 알림 스타일 구분 |
+
+가이드 모달/패널 식별자(프론트엔드 UI):
+
+| 용어 | 식별자 | 설명 |
+|------|--------|------|
+| 가이드 모달 | `guide-modal` | 튜토리얼/규칙 상세 모달 컨테이너 |
+| 튜토리얼 패널 | `guide-tutorial-panel` | 튜토리얼 단계 카드 영역 |
+| 규칙 패널 | `guide-rules-panel` | 단계별 규칙 목록 영역 |
+| 현재 단계 라벨 | `guide-current-phase-label` | 현재 게임 단계 라벨 텍스트 |
+| 단계 도움말 제목 | `phase-help-title` | 인게임 도움말 제목 텍스트 |
+| 단계 도움말 본문 | `phase-help-text` | 인게임 도움말 본문 텍스트 |
+
+가이드 동작 메서드(클라이언트):
+
+| 메서드 | 설명 |
+|--------|------|
+| `openGuide(tab)` | 가이드 모달 열기 및 시작 탭 선택 |
+| `closeGuide()` | 가이드 모달 닫기 및 상태 저장 |
+| `selectGuideTab(tab)` | 튜토리얼/규칙 탭 전환 |
+| `guideNext()` / `guidePrev()` | 튜토리얼 단계 이동 |
+| `updateGuideUI()` | 가이드 탭/패널/버튼 상태 갱신 |
+| `updatePhaseHelp(phase)` | 현재 단계 기반 도움말 텍스트 갱신 |
 
 연결 상태 표시값(클라이언트 UI):
 
@@ -251,6 +278,26 @@ const (
 | `connecting` | 연결 중... |
 | `connected` | 연결됨 |
 | `disconnected` | 연결 끊김 |
+
+주요 UI 영역(게임 화면):
+
+| 한국어 | English | 식별자 | 설명 |
+|--------|---------|--------|------|
+| 게임 정보 영역 | Game Info Area | `.game-info` | 플레이어 정보, 단계 정보, 메시지 영역을 포함한 상단 정보 레이아웃 |
+| 플레이어 정보 카드 | Player Info Card | `player0-info`, `player1-info` (`.player-info`) | 플레이어 닉네임/토큰/접속 상태 표시, 현재 턴 강조 |
+| 단계 정보 영역 | Phase Info Area | `.phase-info` | 현재 게임 단계/남은 시간/단계 제목 표시 |
+| 배치 라운드 정보 | Placement Info | `placement-info` | 배치 단계 라운드/최대 라운드 안내 표시 |
+| 단계 도움말 패널 | Phase Help Panel | `phase-help` (`phase-help-title`, `phase-help-text`) | 현재 단계 행동 가이드(규칙 힌트) 표시 |
+| 인게임 메시지 영역 | In-Game Message Area | `message-area` | 서버 `game_state.message`를 렌더링하는 지시문/알림 영역 |
+| 메시지 박스 | Message Box | `.message.success` / `.message.fail` / `.message.info` | 메시지 스타일(초록/빨강/중립) 구분 |
+
+인게임 메시지 영역 렌더링 규칙:
+
+| 항목 | 식별자/필드 | 설명 |
+|------|-------------|------|
+| 메시지 텍스트 | `state.message` | 서버가 보낸 지시문 본문 |
+| 메시지 타입 | `state.messageType` | `success` / `fail` / `info` 스타일 결정 |
+| 렌더링 메서드 | `showMessage(text, type)` | `message-area` 내부에 메시지 박스를 생성하고 3초 후 제거 |
 
 **코드 참조:** `web/index.html`
 

@@ -54,6 +54,21 @@ func (p *Player) ClearConnection() {
 	p.DisconnectedAt = &now
 }
 
+// ClearConnectionIf marks the player disconnected only if connection matches expected.
+func (p *Player) ClearConnectionIf(expected *websocket.Conn) bool {
+	p.ConnMu.Lock()
+	defer p.ConnMu.Unlock()
+
+	if p.Conn != expected {
+		return false
+	}
+
+	p.Conn = nil
+	now := time.Now()
+	p.DisconnectedAt = &now
+	return true
+}
+
 // GetConnection returns the current connection (thread-safe)
 func (p *Player) GetConnection() *websocket.Conn {
 	p.ConnMu.Lock()

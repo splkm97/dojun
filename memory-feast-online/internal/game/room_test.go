@@ -117,3 +117,25 @@ func TestGetWinnerHandlesMissingPlayers(t *testing.T) {
 		}
 	})
 }
+
+func TestHandleConfirmMatchBlocksReentry(t *testing.T) {
+	room := NewRoom(4)
+
+	room.mu.Lock()
+	room.State.Phase = PhaseMatching
+	room.State.CurrentTurn = 0
+	room.State.SelectedPlates = []int{0, 1}
+	room.State.Plates[0].Tokens = 1
+	room.State.Plates[1].Tokens = 1
+	room.mu.Unlock()
+
+	ok, _, _, _ := room.HandleConfirmMatch(0)
+	if !ok {
+		t.Fatalf("expected first HandleConfirmMatch to succeed")
+	}
+
+	ok, _, _, _ = room.HandleConfirmMatch(0)
+	if ok {
+		t.Fatalf("expected second HandleConfirmMatch to be blocked while confirmPending")
+	}
+}

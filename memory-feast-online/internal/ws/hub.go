@@ -97,11 +97,12 @@ const (
 
 // Client represents a connected WebSocket client
 type Client struct {
-	Hub       *Hub
-	Conn      *websocket.Conn
-	SessionID string
-	Send      chan []byte
-	State     ClientState
+	Hub          *Hub
+	Conn         *websocket.Conn
+	SessionID    string
+	Send         chan []byte
+	State        ClientState
+	onDisconnect func(*Client)
 
 	closeMu sync.Mutex
 	writeMu sync.Mutex // Mutex for serializing writes
@@ -151,7 +152,25 @@ func (c *Client) Close() {
 	}
 	c.closed = true
 	close(c.Send)
-	c.Conn.Close()
+	if c.Conn != nil {
+		c.writeMu.Lock()
+		c.Conn.Close()
+		c.writeMu.Unlock()
+	}
+}
+
+// SetOnDisconnect sets callback invoked when ReadPump exits.
+func (c *Client) SetOnDisconnect(callback func(*Client)) {
+	c.closeMu.Lock()
+	defer c.closeMu.Unlock()
+	c.onDisconnect = callback
+}
+
+// OnDisconnect returns the current disconnect callback.
+func (c *Client) OnDisconnect() func(*Client) {
+	c.closeMu.Lock()
+	defer c.closeMu.Unlock()
+	return c.onDisconnect
 }
 
 // IsClosed returns whether the client is closed
@@ -164,10 +183,14 @@ func (c *Client) IsClosed() bool {
 // WritePump pumps messages from the Send channel to the websocket connection
 // All writes are serialized via writeMu
 func (c *Client) WritePump() {
+	if c.Conn == nil {
+		return
+	}
+
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.Conn.Close()
+		c.Close()
 	}()
 
 	for {
@@ -202,30 +225,31 @@ func (c *Client) WritePump() {
 // Used by game room broadcasts to avoid channel overhead
 func (c *Client) WriteMessageDirect(messageType int, data []byte) error {
 	c.closeMu.Lock()
-	if c.closed {
+	if c.closed || c.Conn == nil {
 		c.closeMu.Unlock()
 		return nil
 	}
-	c.closeMu.Unlock()
 
 	c.writeMu.Lock()
+	conn := c.Conn
+	c.closeMu.Unlock()
 	defer c.writeMu.Unlock()
-	c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-	return c.Conn.WriteMessage(messageType, data)
+	conn.SetWriteDeadline(time.Now().Add(writeWait))
+	return conn.WriteMessage(messageType, data)
 }
 
 // SendMessage sends a message to this client
 func (c *Client) SendMessage(msg *Message) error {
-	c.closeMu.Lock()
-	if c.closed {
-		c.closeMu.Unlock()
-		return nil
-	}
-	c.closeMu.Unlock()
-
 	bytes, err := marshalMessage(msg)
 	if err != nil {
 		return err
+	}
+
+	c.closeMu.Lock()
+	defer c.closeMu.Unlock()
+
+	if c.closed {
+		return nil
 	}
 
 	select {

@@ -711,11 +711,9 @@ func (s *Server) handleClientDisconnect(client *ws.Client) {
 		return
 	}
 
-	if player.GetConnection() != client.Conn {
+	if !player.ClearConnectionIf(client.Conn) {
 		return
 	}
-
-	player.ClearConnection()
 
 	if !room.IsFull() {
 		s.removeRoom(room.ID)
