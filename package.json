@@ -26,6 +26,7 @@
   "homepage": "https://github.com/splkm97/dojun#readme",
   "devDependencies": {
     "@playwright/test": "^1.58.1",
+    "@types/node": "^25.2.1",
     "serve": "^14.2.5",
     "typescript": "^5.9.3"
   }
