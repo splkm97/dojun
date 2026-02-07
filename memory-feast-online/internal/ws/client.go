@@ -28,8 +28,11 @@ type MessageHandler func(client *Client, msg *Message)
 // ReadPump pumps messages from the websocket connection to the handler
 func (c *Client) ReadPump(handler MessageHandler) {
 	defer func() {
+		if callback := c.OnDisconnect(); callback != nil {
+			callback(c)
+		}
 		c.Hub.Unregister(c)
-		c.Conn.Close()
+		c.Close()
 	}()
 
 	c.Conn.SetReadLimit(maxMessageSize)
