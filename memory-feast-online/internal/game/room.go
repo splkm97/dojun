@@ -395,6 +395,20 @@ func (r *Room) GetGameState() ws.GameStatePayload {
 	return r.GetGameStateForPlayer(-1) // -1 means generic state
 }
 
+// GetPhase returns the current game phase.
+func (r *Room) GetPhase() Phase {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.State.Phase
+}
+
+// GetCurrentTurn returns the current turn player index.
+func (r *Room) GetCurrentTurn() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.State.CurrentTurn
+}
+
 // GetGameStateForPlayer returns game state with player-specific selection visibility
 // playerIndex: 0 or 1 for specific player, -1 for generic state
 func (r *Room) GetGameStateForPlayer(playerIndex int) ws.GameStatePayload {

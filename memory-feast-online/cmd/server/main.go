@@ -507,7 +507,7 @@ func (s *Server) handleReconnect(client *ws.Client, msg *ws.Message) {
 	}
 
 	// Check if game is already finished
-	if room.State.Phase == game.PhaseFinished {
+	if room.GetPhase() == game.PhaseFinished {
 		s.sendError(client, "game_finished", "Game has already ended")
 		return
 	}
@@ -582,8 +582,7 @@ func (s *Server) startMatchingTimer(room *game.Room) {
 		},
 		func() {
 			// Timeout
-			snapshot := room.GetGameState()
-			currentTurn := snapshot.CurrentTurn
+			currentTurn := room.GetCurrentTurn()
 			room.HandleTimeout(currentTurn)
 
 			state := room.GetGameState()
